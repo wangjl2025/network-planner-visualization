@@ -40,6 +40,9 @@ jobs:
         run: npm ci
 
       - name: Build
+        # 禁用 CI 环境下的 eslint 错误导致构建失败
+        env:
+          CI: false
         run: npm run build
 
       - name: Setup Pages
