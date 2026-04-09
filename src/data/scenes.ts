@@ -133,6 +133,15 @@ export const scenes: Scene[] = [
     difficulty: 'medium',
     duration: '5-7分钟',
   },
+  {
+    id: 'isis-overview',
+    title: 'IS-IS协议概览',
+    description: 'IS-IS与OSPF对比，区域边界在链路、路由器类型（L1/L2/L1-2）、报文类型详解',
+    phase: 1,
+    category: 'IS-IS路由协议',
+    difficulty: 'medium',
+    duration: '6-8分钟',
+  },
 
   // Phase 2: 数据中心
   {
