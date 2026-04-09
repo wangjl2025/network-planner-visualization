@@ -1,5 +1,5 @@
-import { useState, useCallback, useEffect } from 'react';
-import { Play, Pause, SkipBack, SkipForward, RotateCcw, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useCallback } from 'react';
+import { Play, Pause, SkipBack, SkipForward, RotateCcw } from 'lucide-react';
 
 export interface AnimationStep {
   id: string;

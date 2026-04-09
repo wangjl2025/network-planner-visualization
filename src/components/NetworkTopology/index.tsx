@@ -101,17 +101,17 @@ export function NetworkTopology({
         if (node.id !== 'R1') {
           let current: string | null = node.id;
           while (current !== null && previous[current] !== null) {
-            const prev = previous[current]!;
-            const edgeId1 = `e-${prev}-${current}`;
-            const edgeId2 = `e-${current}-${prev}`;
+            const prevNode: string = previous[current]!;
+            const edgeId1 = `e-${prevNode}-${current}`;
+            const edgeId2 = `e-${current}-${prevNode}`;
             const edge = edges.find(e => 
-              (e.from === prev && e.to === current) || 
-              (e.from === current && e.to === prev)
+              (e.from === prevNode && e.to === current) || 
+              (e.from === current && e.to === prevNode)
             );
             if (edge) {
               shortestPathEdges.add(edge.id);
             }
-            current = prev;
+            current = prevNode;
           }
         }
       });
