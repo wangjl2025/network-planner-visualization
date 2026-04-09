@@ -25,7 +25,10 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "erasableSyntaxOnly": true,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+
+    /* 忽略 TypeScript 6.0 废弃警告 */
+    "ignoreDeprecations": "6.0"
   },
   "include": ["src"]
 }

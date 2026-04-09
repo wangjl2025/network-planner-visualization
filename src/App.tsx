@@ -64,9 +64,6 @@ function App() {
         <Route path="/scene/bgp-decision" element={<SceneErrorBoundary sceneName="BGP选路决策"><BGPDecisionScene /></SceneErrorBoundary>} />
         <Route path="/scene/lacp" element={<SceneErrorBoundary sceneName="LACP链路聚合"><LACPScene /></SceneErrorBoundary>} />
         <Route path="/scene/vxlan" element={<SceneErrorBoundary sceneName="VXLAN"><VXLANScene /></SceneErrorBoundary>} />
-        <Route path="/scene/mpls-l3vpn" element={<SceneErrorBoundary sceneName="MPLS L3VPN"><MPLSL3VPNScene /></SceneErrorBoundary>} />
-        <Route path="/scene/srv6-overview" element={<SceneErrorBoundary sceneName="SRv6概览"><SRv6OverviewScene /></SceneErrorBoundary>} />
-        <Route path="/scene/isis-overview" element={<SceneErrorBoundary sceneName="IS-IS概览"><ISISOverviewScene /></SceneErrorBoundary>} />
       </Routes>
     </Router>
     </GlobalErrorBoundary>
