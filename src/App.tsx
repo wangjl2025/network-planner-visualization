@@ -33,7 +33,7 @@ import { VXLANScene } from './scenes/phase1/VXLAN';
 function App() {
   return (
     <GlobalErrorBoundary>
-      <Router>
+      <Router basename={import.meta.env.BASE_URL !== '/' ? import.meta.env.BASE_URL.replace(/\/$/, '') : undefined}>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/phase/:id" element={<Phase />} />
