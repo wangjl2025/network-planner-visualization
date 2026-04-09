@@ -1,8 +1,8 @@
-import { ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { ArrowLeft, Clock, Target, AlertCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { AnimationPlayer } from '../AnimationPlayer';
-import { ParameterPanel } from '../ParameterPanel';
+import { AnimationPlayer, type AnimationStep } from '../AnimationPlayer';
+import { ParameterPanel, type Parameter } from '../ParameterPanel';
 
 // Scene 类型定义（内联避免模块导入问题）
 interface Scene {
@@ -18,20 +18,22 @@ interface Scene {
 
 // AnimationPlayerProps 内联定义
 interface AnimationPlayerProps {
-  steps: { id: string; title: string; description: string; duration: number }[];
+  steps: AnimationStep[];
   currentStep: number;
   isPlaying: boolean;
   onPlay: () => void;
   onPause: () => void;
   onStepChange: (step: number) => void;
   onReset: () => void;
-  progress: number;
+  progress?: number;
 }
 
 // ParameterPanelProps 内联定义
 interface ParameterPanelProps {
-  parameters: { id: string; name: string; value: number | string; min?: number; max?: number; step?: number; unit?: string }[];
-  onChange: (id: string, value: number | string) => void;
+  parameters: Parameter[];
+  onChange: (id: string, value: number | string | boolean) => void;
+  onReset?: () => void;
+  title?: string;
 }
 
 export interface SceneLayoutProps {

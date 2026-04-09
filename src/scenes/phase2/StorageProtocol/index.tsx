@@ -118,7 +118,7 @@ export function StorageProtocolScene() {
 
     return {
       iops,
-      latency: totalLatency.toFixed(2),
+      latency: totalLatency, // 改为数字，而不是字符串
       throughput: parseFloat(throughput)
     };
   }, [protocolInfo.latency, ioSize, queueDepth]);
@@ -135,7 +135,7 @@ export function StorageProtocolScene() {
     for (let i = 0; i < 50; i++) {
       points.push({
         time: i * 0.1,
-        latency: parseFloat(result.latency) + Math.random() * 2,
+        latency: result.latency + Math.random() * 2,
         throughput: result.throughput * (0.8 + Math.random() * 0.4)
       });
     }

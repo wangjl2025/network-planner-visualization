@@ -102,8 +102,9 @@ export function NetworkTopology({
           let current: string | null = node.id;
           while (current !== null && previous[current] !== null) {
             const prevNode: string = previous[current]!;
-            const edgeId1 = `e-${prevNode}-${current}`;
-            const edgeId2 = `e-${current}-${prevNode}`;
+            // 构建边ID用于查找
+            const _edgeId1 = `e-${prevNode}-${current}`;
+            const _edgeId2 = `e-${current}-${prevNode}`;
             const edge = edges.find(e => 
               (e.from === prevNode && e.to === current) || 
               (e.from === current && e.to === prevNode)

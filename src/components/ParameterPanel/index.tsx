@@ -3,8 +3,9 @@ import { Sliders, Info } from 'lucide-react';
 
 export interface Parameter {
   id: string;
-  name: string;
-  type: 'number' | 'select' | 'boolean' | 'range';
+  name?: string;
+  label?: string;
+  type: 'number' | 'select' | 'boolean' | 'range' | 'slider';
   value: number | string | boolean;
   min?: number;
   max?: number;
@@ -18,9 +19,10 @@ export interface ParameterPanelProps {
   parameters: Parameter[];
   onChange: (id: string, value: number | string | boolean) => void;
   onReset?: () => void;
+  title?: string;
 }
 
-export function ParameterPanel({ parameters, onChange, onReset }: ParameterPanelProps) {
+export function ParameterPanel({ parameters, onChange, onReset, title }: ParameterPanelProps) {
   const [expandedParam, setExpandedParam] = useState<string | null>(null);
 
   const handleChange = (id: string, value: number | string | boolean) => {
@@ -32,7 +34,7 @@ export function ParameterPanel({ parameters, onChange, onReset }: ParameterPanel
       <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Sliders className="text-blue-600 dark:text-blue-400" size={20} />
-          <h3 className="font-semibold text-gray-900 dark:text-white">参数调节</h3>
+          <h3 className="font-semibold text-gray-900 dark:text-white">{title || '参数调节'}</h3>
         </div>
         {onReset && (
           <button
@@ -49,7 +51,7 @@ export function ParameterPanel({ parameters, onChange, onReset }: ParameterPanel
           <div key={param.id} className="space-y-2">
             <div className="flex items-center justify-between">
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                {param.name}
+                {param.name || param.label || param.id}
               </label>
               {param.description && (
                 <button

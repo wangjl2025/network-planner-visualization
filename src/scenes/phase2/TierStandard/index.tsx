@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { motion } from 'framer-motion';
 import { SceneLayout } from '../../../components/SceneLayout';
 import { useAnimation } from '../../../hooks/useAnimation';
 import { useParameters } from '../../../hooks/useParameters';

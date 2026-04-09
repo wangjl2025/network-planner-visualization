@@ -3,9 +3,11 @@ import { Play, Pause, SkipBack, SkipForward, RotateCcw } from 'lucide-react';
 
 export interface AnimationStep {
   id: string;
-  title: string;
-  description: string;
-  duration: number; // 毫秒
+  title?: string;
+  label?: string;
+  description?: string;
+  desc?: string;
+  duration?: number; // 毫秒
 }
 
 export interface AnimationPlayerProps {
@@ -16,7 +18,7 @@ export interface AnimationPlayerProps {
   onPause: () => void;
   onStepChange: (step: number) => void;
   onReset: () => void;
-  progress: number; // 0-100
+  progress?: number; // 0-100，可选
 }
 
 export function AnimationPlayer({
@@ -51,19 +53,21 @@ export function AnimationPlayer({
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-      {/* 进度条 */}
-      <div
-        className="h-2 bg-gray-200 dark:bg-gray-700 cursor-pointer relative group"
-        onClick={handleProgressClick}
-      >
+      {/* 进度条 - 仅在 progress 有值时显示 */}
+      {progress !== undefined && (
         <div
-          className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-300"
-          style={{ width: `${progress}%` }}
-        />
-        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity">
-          <div className="h-full bg-white/10" />
+          className="h-2 bg-gray-200 dark:bg-gray-700 cursor-pointer relative group"
+          onClick={handleProgressClick}
+        >
+          <div
+            className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-300"
+            style={{ width: `${progress}%` }}
+          />
+          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="h-full bg-white/10" />
+          </div>
         </div>
-      </div>
+      )}
 
       {/* 控制栏 */}
       <div className="p-4 flex items-center justify-between">
@@ -127,7 +131,7 @@ export function AnimationPlayer({
               <span className="mr-1.5">
                 {index < currentStep ? '✓' : index + 1}
               </span>
-              {step.title}
+              {step.title || step.label || step.id}
             </button>
           ))}
         </div>
@@ -137,10 +141,10 @@ export function AnimationPlayer({
       <div className="px-4 pb-4">
         <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
           <h4 className="font-semibold text-gray-900 dark:text-white mb-2">
-            {steps[currentStep]?.title}
+            {steps[currentStep]?.title || steps[currentStep]?.label || steps[currentStep]?.id}
           </h4>
           <p className="text-sm text-gray-600 dark:text-gray-400">
-            {steps[currentStep]?.description}
+            {steps[currentStep]?.description || steps[currentStep]?.desc || ''}
           </p>
         </div>
       </div>
