@@ -19,16 +19,19 @@ export function BGPRRScene() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [rrEnabled, setRrEnabled] = useState(false);
-  const [animationPhase, setAnimationPhase] = useState<'idle' | 'sending' | 'blocked' | 'reflected'>('idle');
+  const [animationPhase, setAnimationPhase] = useState<AnimationPhase>('idle');
 
-  // 步骤定义
+  // 步骤定义 - 动画阶段
   const steps = [
-    { id: 'intro', title: 'IBGP全互联问题', description: 'AS内部需要建立n(n-1)/2条IBGP连接' },
-    { id: 'split', title: '水平分割规则', description: '从IBGP学到的路由不再通告给其他IBGP邻居' },
-    { id: 'problem', title: '路由黑洞', description: 'R3无法学到R1通告的路由' },
-    { id: 'rr', title: '路由反射器', description: 'RR打破水平分割，反射路由给所有Client' },
-    { id: 'cluster', title: 'Cluster防环', description: '使用Cluster_List和Originator_ID防止环路' },
+    { id: 'intro', title: 'IBGP全互联问题', description: 'AS内部需要建立n(n-1)/2条IBGP连接以避免路由环路' },
+    { id: 'split', title: 'R1向R2通告路由', description: 'R1通过eBGP学到10.0.0.0/8，通告给IBGP邻居R2' },
+    { id: 'problem', title: 'IBGP水平分割规则阻断', description: 'R2从IBGP学到路由，但IBGP水平分割规则阻止转发给R3（从IBGP邻居学到的路由不能再传给其他IBGP邻居）' },
+    { id: 'rr', title: '启用路由反射器', description: 'R2配置为RR，豁免水平分割规则，将路由反射给Client R3' },
+    { id: 'cluster', title: 'Cluster防环机制', description: 'RR添加Cluster_List和Originator_ID，防止同一路由在多个RR间循环反射' },
   ];
+
+  // 动画阶段类型
+  type AnimationPhase = 'idle' | 'r1-advertise' | 'blocked' | 'reflected';
 
   // 自动播放
   useEffect(() => {
@@ -49,12 +52,12 @@ export function BGPRRScene() {
 
   // 根据步骤更新动画阶段
   useEffect(() => {
-    const phaseMap: Record<number, 'idle' | 'sending' | 'blocked' | 'reflected'> = {
-      0: 'idle',
-      1: 'sending',
-      2: 'blocked',
-      3: 'reflected',
-      4: 'reflected',
+    const phaseMap: Record<number, AnimationPhase> = {
+      0: 'idle',           // IBGP全互联问题
+      1: 'r1-advertise',   // R1通告路由给R2
+      2: 'blocked',        // 水平分割阻断
+      3: 'reflected',      // RR反射路由
+      4: 'reflected',      // 防环机制
     };
     setAnimationPhase(phaseMap[currentStep] || 'idle');
     if (currentStep >= 3) {
@@ -142,23 +145,84 @@ export function BGPRRScene() {
             IBGP拓扑与路由传播
           </h3>
 
-          {/* 网络拓扑图 */}
-          <div className="relative h-80 bg-gray-50 dark:bg-gray-900 rounded-lg p-6">
-            {/* R1 - eBGP边界路由器 */}
-            <div className="absolute left-8 top-1/2 -translate-y-1/2">
+          {/* 网络拓扑图 - 使用SVG实现响应式布局 */}
+          <div className="relative h-80 bg-gray-50 dark:bg-gray-900 rounded-lg p-6 overflow-hidden">
+            <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
+              {/* 外部AS - 左侧 */}
+              <g transform="translate(5, 50)">
+                <rect x="-8" y="-8" width="16" height="16" rx="2" fill="#fed7aa" stroke="#fb923c" strokeWidth="1"/>
+                <text x="0" y="2" textAnchor="middle" fontSize="4" fontWeight="bold" fill="#ea580c">AS2</text>
+              </g>
+
+              {/* AS1标识 - 顶部 */}
+              <g transform="translate(50, 10)">
+                <rect x="-15" y="-4" width="30" height="8" rx="4" fill="#e5e7eb"/>
+                <text x="0" y="2" textAnchor="middle" fontSize="4" fill="#374151">AS1 (IBGP)</text>
+              </g>
+
+              {/* 连接线 - R1到R2 */}
+              <line x1="20" y1="50" x2="50" y2="50" stroke="#d1d5db" strokeWidth="0.5"/>
+              
+              {/* 连接线 - R2到R3 */}
+              <line x1="50" y1="50" x2="80" y2="50" stroke="#d1d5db" strokeWidth="0.5"/>
+              
+              {/* 全互联虚线 - R1到R3直接连接 */}
+              <path d="M 20 50 Q 50 20 80 50" fill="none" stroke="#e5e7eb" strokeWidth="0.5" strokeDasharray="2,1"/>
+              <text x="50" y="32" textAnchor="middle" fontSize="3" fill="#9ca3af">需要直接IBGP连接</text>
+
+              {/* 路由传播动画 - R1→R2 (蓝色) */}
+              {(animationPhase === 'r1-advertise' || animationPhase === 'reflected') && (
+                <g transform="translate(35, 50)">
+                  <circle r="4" fill="#3b82f6" opacity="0.8">
+                    <animate attributeName="opacity" values="0.8;0.4;0.8" dur="1s" repeatCount="indefinite"/>
+                  </circle>
+                  <text x="0" y="1.5" textAnchor="middle" fontSize="2.5" fill="white">10.0.0.0/8</text>
+                </g>
+              )}
+
+              {/* 路由传播动画 - R2→R3 (绿色) - RR反射 */}
+              {animationPhase === 'reflected' && (
+                <g transform="translate(65, 50)">
+                  <circle r="4" fill="#22c55e" opacity="0.8">
+                    <animate attributeName="opacity" values="0.8;0.4;0.8" dur="1s" repeatCount="indefinite"/>
+                  </circle>
+                  <text x="0" y="1.5" textAnchor="middle" fontSize="2.5" fill="white">10.0.0.0/8</text>
+                </g>
+              )}
+
+              {/* 阻断标识 - R2到R3 */}
+              {animationPhase === 'blocked' && (
+                <g transform="translate(65, 50)">
+                  <circle r="5" fill="#ef4444"/>
+                  <text x="0" y="1.5" textAnchor="middle" fontSize="2.5" fill="white">×</text>
+                  <text x="0" y="10" textAnchor="middle" fontSize="3" fill="#ef4444">水平分割</text>
+                </g>
+              )}
+
+              {/* R2已收到路由标识 */}
+              {animationPhase === 'blocked' && (
+                <g transform="translate(50, 58)">
+                  <text x="0" y="0" textAnchor="middle" fontSize="3" fill="#6b7280">R2已收到路由</text>
+                  <text x="0" y="4" textAnchor="middle" fontSize="2.5" fill="#6b7280">但无法转发</text>
+                </g>
+              )}
+            </svg>
+
+            {/* R1 - eBGP边界路由器 - 百分比定位 */}
+            <div className="absolute" style={{ left: '20%', top: '50%', transform: 'translate(-50%, -50%)' }}>
               <div className={`w-16 h-16 rounded-full flex flex-col items-center justify-center border-2 transition-all ${
-                animationPhase === 'sending' || animationPhase === 'reflected'
+                animationPhase === 'r1-advertise' || animationPhase === 'reflected'
                   ? 'bg-blue-100 border-blue-500 dark:bg-blue-900/30 dark:border-blue-400'
                   : 'bg-white border-gray-300 dark:bg-gray-800 dark:border-gray-600'
               }`}>
-                <Server size={24} className="text-blue-600 dark:text-blue-400" />
+                <Server size={24} className={animationPhase === 'r1-advertise' || animationPhase === 'reflected' ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400'} />
                 <span className="text-xs font-medium mt-1">R1</span>
                 <span className="text-[10px] text-gray-500">eBGP</span>
               </div>
             </div>
 
-            {/* R2 - 路由反射器 */}
-            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+            {/* R2 - 路由反射器 - 百分比定位 */}
+            <div className="absolute" style={{ left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }}>
               <div className={`w-20 h-20 rounded-full flex flex-col items-center justify-center border-2 transition-all ${
                 rrEnabled
                   ? 'bg-purple-100 border-purple-500 dark:bg-purple-900/30 dark:border-purple-400 shadow-lg shadow-purple-200 dark:shadow-purple-900/30'
@@ -176,8 +240,8 @@ export function BGPRRScene() {
               )}
             </div>
 
-            {/* R3 - IBGP邻居 */}
-            <div className="absolute right-8 top-1/2 -translate-y-1/2">
+            {/* R3 - IBGP邻居 - 百分比定位 */}
+            <div className="absolute" style={{ left: '80%', top: '50%', transform: 'translate(-50%, -50%)' }}>
               <div className={`w-16 h-16 rounded-full flex flex-col items-center justify-center border-2 transition-all ${
                 animationPhase === 'reflected'
                   ? 'bg-green-100 border-green-500 dark:bg-green-900/30 dark:border-green-400'
@@ -203,60 +267,18 @@ export function BGPRRScene() {
               )}
             </div>
 
-            {/* 外部AS */}
-            <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4">
+            {/* 外部AS - 百分比定位 */}
+            <div className="absolute" style={{ left: '5%', top: '50%', transform: 'translate(-50%, -50%)' }}>
               <div className="w-12 h-12 rounded-lg bg-orange-100 border-2 border-orange-400 flex items-center justify-center">
                 <span className="text-xs font-bold text-orange-600">AS2</span>
               </div>
             </div>
 
-            {/* AS1标识 */}
-            <div className="absolute top-4 left-1/2 -translate-x-1/2">
+            {/* AS1标识 - 百分比定位 */}
+            <div className="absolute" style={{ left: '50%', top: '10%', transform: 'translate(-50%, -50%)' }}>
               <div className="px-4 py-1 bg-gray-200 dark:bg-gray-700 rounded-full text-sm font-medium text-gray-700 dark:text-gray-300">
                 AS1 (IBGP)
               </div>
-            </div>
-
-            {/* 连接线 - R1到R2 */}
-            <div className="absolute left-24 top-1/2 w-32 h-0.5 bg-gray-300 dark:bg-gray-600">
-              {/* 路由传播动画 - R1→R2 */}
-              {(animationPhase === 'sending' || animationPhase === 'reflected') && (
-                <div className="absolute top-1/2 -translate-y-1/2 animate-pulse">
-                  <div className="flex items-center gap-1 bg-blue-500 text-white text-[10px] px-2 py-1 rounded-full whitespace-nowrap">
-                    <ArrowRight size={10} />
-                    10.0.0.0/8
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* 连接线 - R2到R3 */}
-            <div className="absolute right-24 top-1/2 w-32 h-0.5 bg-gray-300 dark:bg-gray-600">
-              {/* 路由传播动画 - R2→R3 */}
-              {animationPhase === 'reflected' && (
-                <div className="absolute top-1/2 -translate-y-1/2 right-0 animate-pulse">
-                  <div className="flex items-center gap-1 bg-green-500 text-white text-[10px] px-2 py-1 rounded-full whitespace-nowrap">
-                    <ArrowRight size={10} />
-                    10.0.0.0/8
-                  </div>
-                </div>
-              )}
-              {/* 阻断标识 */}
-              {animationPhase === 'blocked' && (
-                <div className="absolute top-1/2 -translate-y-1/2 right-8">
-                  <div className="flex items-center gap-1 bg-red-500 text-white text-[10px] px-2 py-1 rounded-full">
-                    <XCircle size={10} />
-                    水平分割
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* 全互联虚线 - R1到R3直接连接 */}
-            <div className="absolute left-24 right-24 top-1/2 h-20 border-t-2 border-dashed border-gray-200 dark:border-gray-700 -translate-y-10">
-              <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-[10px] text-gray-400">
-                需要直接IBGP连接
-              </span>
             </div>
           </div>
 

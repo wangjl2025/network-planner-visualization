@@ -2,7 +2,7 @@ import { useParams } from 'react-router-dom';
 import { Layout } from '../../components/Layout';
 import { SceneCard } from '../../components/SceneCard';
 import { scenesByPhase } from '../../data/scenes';
-import { BookOpen, Layers, Grid, Cpu, ArrowLeft } from 'lucide-react';
+import { BookOpen, Layers, Grid, Cpu, ArrowLeft, Globe } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const phaseInfo = {
@@ -46,12 +46,22 @@ const phaseInfo = {
     borderColor: 'border-orange-200 dark:border-orange-800',
     textColor: 'text-orange-600 dark:text-orange-400',
   },
+  5: {
+    name: 'Phase 5',
+    title: '基础协议',
+    description: 'DHCP、DNS、NAT — 网络通信的基石，必考内容',
+    icon: Globe,
+    color: 'cyan',
+    bgColor: 'bg-cyan-50 dark:bg-cyan-900/20',
+    borderColor: 'border-cyan-200 dark:border-cyan-800',
+    textColor: 'text-cyan-600 dark:text-cyan-400',
+  },
 };
 
 export function Phase() {
   const { id } = useParams<{ id: string }>();
-  const phaseId = parseInt(id || '1') as 1 | 2 | 3 | 4;
-  const info = phaseInfo[phaseId];
+  const phaseId = parseInt(id || '1') as 1 | 2 | 3 | 4 | 5;
+  const info = phaseInfo[phaseId as keyof typeof phaseInfo];
   const scenes = scenesByPhase[phaseId] || [];
   const Icon = info.icon;
 

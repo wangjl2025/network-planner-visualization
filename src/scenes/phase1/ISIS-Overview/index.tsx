@@ -177,10 +177,12 @@ export function ISISOverviewScene() {
                       <div className="text-xs text-center text-gray-600 dark:text-gray-400 mt-1">R3</div>
                     </div>
 
-                    {/* 连接线 */}
-                    <svg className="absolute inset-0 w-full h-full pointer-events-none">
-                      <line x1="80" y1="180" x2="150" y2="80" stroke="#3b82f6" strokeWidth="2" strokeDasharray="4" />
-                      <line x1="220" y1="180" x2="150" y2="80" stroke="#3b82f6" strokeWidth="2" strokeDasharray="4" />
+                    {/* 连接线 - 使用百分比坐标 */}
+                    <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 100 100" preserveAspectRatio="none">
+                      {/* R1 (左下, ~16% 80%) 到 R2 (上中, ~50% 15%) */}
+                      <line x1="16" y1="80" x2="50" y2="15" stroke="#3b82f6" strokeWidth="0.6" strokeDasharray="2" />
+                      {/* R3 (右下, ~84% 80%) 到 R2 (上中, ~50% 15%) */}
+                      <line x1="84" y1="80" x2="50" y2="15" stroke="#3b82f6" strokeWidth="0.6" strokeDasharray="2" />
                     </svg>
 
                     {/* 区域边界说明 */}
@@ -229,12 +231,15 @@ export function ISISOverviewScene() {
                       <div className="text-xs text-center text-gray-600 dark:text-gray-400 mt-1">R3 (L1)</div>
                     </div>
 
-                    {/* 连接线 - 区域边界在链路上 */}
-                    <svg className="absolute inset-0 w-full h-full pointer-events-none">
-                      <line x1="80" y1="180" x2="150" y2="80" stroke="#ef4444" strokeWidth="3" />
-                      <line x1="220" y1="180" x2="150" y2="80" stroke="#ef4444" strokeWidth="3" />
-                      <circle cx="115" cy="130" r="4" fill="#ef4444" />
-                      <circle cx="185" cy="130" r="4" fill="#ef4444" />
+                    {/* 连接线 - 区域边界在链路上 - 使用百分比坐标 */}
+                    <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 100 100" preserveAspectRatio="none">
+                      {/* R1 (左下, ~16% 80%) 到 R2 (上中, ~50% 15%) */}
+                      <line x1="16" y1="80" x2="50" y2="15" stroke="#ef4444" strokeWidth="0.8" />
+                      {/* R3 (右下, ~84% 80%) 到 R2 (上中, ~50% 15%) */}
+                      <line x1="84" y1="80" x2="50" y2="15" stroke="#ef4444" strokeWidth="0.8" />
+                      {/* 区域边界红点 - 在线路中间 */}
+                      <circle cx="33" cy="47" r="1.5" fill="#ef4444" />
+                      <circle cx="67" cy="47" r="1.5" fill="#ef4444" />
                     </svg>
 
                     {/* 区域边界说明 */}

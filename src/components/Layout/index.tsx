@@ -12,6 +12,7 @@ const phases = [
   { id: 2, name: 'Phase 2', title: '数据中心', icon: Layers, color: 'bg-green-500' },
   { id: 3, name: 'Phase 3', title: '扩展整合', icon: Grid, color: 'bg-purple-500' },
   { id: 4, name: 'Phase 4', title: '高级前沿', icon: Cpu, color: 'bg-orange-500' },
+  { id: 5, name: 'Phase 5', title: '基础协议', icon: BookOpen, color: 'bg-cyan-500' },
 ];
 
 export function Layout({ children }: LayoutProps) {

@@ -17,34 +17,34 @@ import {
   Gauge
 } from 'lucide-react';
 
-// 供电架构类型
+// 供电架构类型（可用性对应TIA-942标准：Tier I~IV分别对应N/N+1/2N/2N+1）
 const POWER_ARCHITECTURES = {
   n: {
     name: 'N配置',
-    description: '无冗余，单路供电',
+    description: '无冗余，单路供电（对应Tier I）',
     redundancy: '0%',
-    availability: '99.9%',
+    availability: '99.671%',
     color: '#ef4444'
   },
   nPlus1: {
     name: 'N+1配置',
-    description: '一个备用模块',
+    description: '一个备用模块（对应Tier II）',
     redundancy: '1/N',
-    availability: '99.99%',
+    availability: '99.741%',
     color: '#f59e0b'
   },
   nPlusN: {
     name: '2N配置',
-    description: '完全冗余，双路独立',
+    description: '完全冗余，双路独立（对应Tier III~IV）',
     redundancy: '100%',
-    availability: '99.999%',
+    availability: '99.982%',
     color: '#22c55e'
   },
   twoNPlus1: {
     name: '2(N+1)配置',
-    description: '双路各N+1冗余',
+    description: '双路各N+1冗余（对应Tier IV容错级）',
     redundancy: '100%+',
-    availability: '99.9999%',
+    availability: '99.995%',
     color: '#3b82f6'
   }
 };
@@ -321,7 +321,7 @@ export function DataCenterInfraScene() {
 
           <div className="mt-4 p-4 bg-slate-800/50 rounded-lg border border-slate-700">
             <h3 className="text-sm font-semibold text-slate-300 mb-3">故障模拟</h3>
-            <div className="space-y-2 max-h-32 overflow-y-auto">
+            <div className="space-y-2">
               {powerSystems.filter(s => s.id.startsWith('ups')).map(sys => (
                 <button
                   key={sys.id}
@@ -346,7 +346,7 @@ export function DataCenterInfraScene() {
 
         {/* 可视化区域 */}
         <div className="col-span-6">
-          <div className="bg-slate-900/50 rounded-lg border border-slate-700 p-6 h-[500px] relative overflow-hidden">
+          <div className="bg-slate-900/50 rounded-lg border border-slate-700 p-6 relative overflow-hidden">
             <div className="grid grid-cols-2 gap-6 h-full">
               {/* 供电系统 */}
               <div className="space-y-4">

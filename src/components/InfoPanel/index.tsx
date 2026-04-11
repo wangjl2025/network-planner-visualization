@@ -13,7 +13,7 @@ export function InfoPanel({ title, content, className = '' }: InfoPanelProps) {
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`bg-slate-800/50 border border-slate-700/50 rounded-lg p-4 ${className}`}
+      className={`bg-slate-800 border border-slate-700 rounded-lg p-4 ${className}`}
     >
       <div className="flex items-center gap-2 mb-3">
         <Info className="w-4 h-4 text-cyan-400" />

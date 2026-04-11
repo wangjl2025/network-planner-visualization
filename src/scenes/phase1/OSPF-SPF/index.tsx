@@ -1,15 +1,17 @@
 import { useMemo, useState, useCallback } from 'react';
+import { motion } from 'framer-motion';
 import { SceneLayout } from '../../../components/SceneLayout';
 import { useAnimation } from '../../../hooks/useAnimation';
 import { useParameters } from '../../../hooks/useParameters';
 import { NetworkTopology } from '../../../components/NetworkTopology';
+import { Calculator, Table, Info, ArrowRight } from 'lucide-react';
 
 // Scene 类型定义（内联避免模块导入问题）
 interface Scene {
   id: string;
   title: string;
   description: string;
-  phase: 1 | 2 | 3 | 4;
+  phase: 1 | 2 | 3 | 4 | 5;
   category: string;
   difficulty?: 'easy' | 'medium' | 'hard';
   duration?: string;
@@ -150,6 +152,17 @@ const initialParameters = [
     description: 'R2到R4的OSPF链路开销值',
   },
   {
+    id: 'reference-bandwidth',
+    name: '参考带宽 (Mbps)',
+    type: 'range' as const,
+    value: 100,
+    min: 10,
+    max: 10000,
+    step: 10,
+    unit: 'Mbps',
+    description: 'OSPF参考带宽，默认100Mbps。Cost = 参考带宽 / 接口带宽',
+  },
+  {
     id: 'show-distances',
     name: '显示距离值',
     type: 'boolean' as const,
@@ -162,6 +175,13 @@ const initialParameters = [
     type: 'boolean' as const,
     value: true,
     description: '高亮显示从R1到各节点的最短路径',
+  },
+  {
+    id: 'show-cost-calc',
+    name: '显示Cost计算',
+    type: 'boolean' as const,
+    value: true,
+    description: '显示OSPF Cost计算公式和过程',
   },
   {
     id: 'animation-speed',
@@ -293,6 +313,31 @@ export function OSPFSPFScene() {
     };
   }, [parameters]);
 
+  // 计算Cost的公式
+  const referenceBandwidth = parameters.getValue<number>('reference-bandwidth') || 100;
+  const showCostCalc = parameters.getValue<boolean>('show-cost-calc') ?? true;
+
+  // 根据带宽计算Cost
+  const calculateCost = (bandwidthMbps: number): number => {
+    return Math.max(1, Math.round(referenceBandwidth / bandwidthMbps));
+  };
+
+  // 常见接口带宽对应的Cost表
+  const interfaceCosts = useMemo(() => {
+    const interfaces = [
+      { name: '10Gbps', bandwidth: 10000 },
+      { name: '1Gbps', bandwidth: 1000 },
+      { name: '100Mbps', bandwidth: 100 },
+      { name: '10Mbps', bandwidth: 10 },
+      { name: '1.544Mbps(T1)', bandwidth: 1.544 },
+      { name: '64Kbps', bandwidth: 0.064 },
+    ];
+    return interfaces.map(iface => ({
+      ...iface,
+      cost: calculateCost(iface.bandwidth),
+    }));
+  }, [referenceBandwidth]);
+
   // 根据动画步骤生成描述
   const getStepDescription = useCallback((step: number): string => {
     const r1r2Cost = parameters.getValue<number>('r1-r2-cost') || 10;
@@ -339,6 +384,42 @@ export function OSPFSPFScene() {
     }));
   }, [getStepDescription]);
 
+  // 生成路由表数据
+  const routingTable = useMemo(() => {
+    const table: { destination: string; nextHop: string; cost: number; path: string[] }[] = [];
+    
+    // 到R2的路由
+    table.push({
+      destination: 'R2',
+      nextHop: 'R2 (直连)',
+      cost: dijkstraResult.distances['R2'] || 0,
+      path: ['R1', 'R2'],
+    });
+    
+    // 到R3的路由
+    const r3Cost = dijkstraResult.distances['R3'] || 0;
+    const r3Prev = dijkstraResult.previous['R3'];
+    table.push({
+      destination: 'R3',
+      nextHop: r3Prev === 'R1' ? 'R3 (直连)' : `via ${r3Prev}`,
+      cost: r3Cost,
+      path: dijkstraResult.path.filter(n => n === 'R1' || n === 'R3' || (r3Prev === 'R2' && n === 'R2')),
+    });
+    
+    // 到R4的路由
+    const r4Cost = dijkstraResult.distances['R4'] || 0;
+    const r4Path = dijkstraResult.path;
+    const r4NextHop = r4Path.length > 1 ? r4Path[1] : 'R4';
+    table.push({
+      destination: 'R4',
+      nextHop: `via ${r4NextHop}`,
+      cost: r4Cost,
+      path: r4Path,
+    });
+    
+    return table;
+  }, [dijkstraResult]);
+
   return (
     <SceneLayout
       scene={sceneData}
@@ -358,14 +439,127 @@ export function OSPFSPFScene() {
         onReset: parameters.resetParameters,
       }}
     >
-      <NetworkTopology
-        nodes={nodes}
-        edges={edges}
-        currentStep={animation.currentStep}
-        showDistances={parameters.getValue<boolean>('show-distances') ?? true}
-        highlightPath={parameters.getValue<boolean>('highlight-path') ?? true}
-        dijkstraResult={dijkstraResult}
-      />
+      <div className="space-y-6">
+        {/* 网络拓扑图 - 固定高度 */}
+        <div className="h-[300px] shrink-0">
+          <NetworkTopology
+            nodes={nodes}
+            edges={edges}
+            currentStep={animation.currentStep}
+            showDistances={parameters.getValue<boolean>('show-distances') ?? true}
+            highlightPath={parameters.getValue<boolean>('highlight-path') ?? true}
+            dijkstraResult={dijkstraResult}
+          />
+        </div>
+        
+        {/* Cost计算器和路由表 */}
+        {showCostCalc && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* Cost计算器 */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-gray-800/50 rounded-xl p-4 border border-gray-700"
+            >
+              <h3 className="text-lg font-bold mb-3 flex items-center gap-2 text-white">
+                <Calculator className="w-5 h-5 text-blue-400" />
+                OSPF Cost计算器
+              </h3>
+              
+              {/* 公式说明 */}
+              <div className="bg-gray-900/50 rounded-lg p-3 mb-3">
+                <div className="text-sm text-gray-300 font-mono">
+                  Cost = 参考带宽 / 接口带宽
+                </div>
+                <div className="text-xs text-gray-400 mt-1">
+                  当前参考带宽: {referenceBandwidth} Mbps
+                </div>
+              </div>
+              
+              {/* 接口Cost表 */}
+              <div className="space-y-1">
+                <div className="grid grid-cols-3 gap-2 text-xs text-gray-400 font-medium border-b border-gray-700 pb-2">
+                  <span>接口类型</span>
+                  <span>带宽</span>
+                  <span>Cost</span>
+                </div>
+                {interfaceCosts.map((iface, idx) => (
+                  <motion.div
+                    key={iface.name}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: idx * 0.05 }}
+                    className="grid grid-cols-3 gap-2 text-sm py-1 border-b border-gray-700/50"
+                  >
+                    <span className="text-gray-300">{iface.name}</span>
+                    <span className="text-gray-400">{iface.bandwidth >= 1 ? `${iface.bandwidth}Mbps` : `${(iface.bandwidth * 1000).toFixed(0)}Kbps`}</span>
+                    <span className={`font-mono font-bold ${iface.cost > 100 ? 'text-red-400' : iface.cost > 10 ? 'text-yellow-400' : 'text-green-400'}`}>
+                      {iface.cost}
+                    </span>
+                  </motion.div>
+                ))}
+              </div>
+              
+              <div className="mt-3 p-2 bg-blue-900/20 rounded-lg border border-blue-500/30">
+                <div className="flex items-start gap-2 text-xs text-blue-300">
+                  <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                  <span>
+                    现代网络中，10Gbps接口的Cost计算为1，而默认参考带宽100Mbps会导致10Gbps和1Gbps接口Cost相同(都是1)。
+                    建议根据网络实际情况调整参考带宽。
+                  </span>
+                </div>
+              </div>
+            </motion.div>
+            
+            {/* 路由表 */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="bg-gray-800/50 rounded-xl p-4 border border-gray-700"
+            >
+              <h3 className="text-lg font-bold mb-3 flex items-center gap-2 text-white">
+                <Table className="w-5 h-5 text-green-400" />
+                R1的OSPF路由表
+              </h3>
+              
+              <div className="space-y-2">
+                <div className="grid grid-cols-4 gap-2 text-xs text-gray-400 font-medium border-b border-gray-700 pb-2">
+                  <span>目的网络</span>
+                  <span>下一跳</span>
+                  <span>Cost</span>
+                  <span>出接口</span>
+                </div>
+                {routingTable.map((route, idx) => (
+                  <motion.div
+                    key={route.destination}
+                    initial={{ opacity: 0, x: 10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: idx * 0.1 }}
+                    className="grid grid-cols-4 gap-2 text-sm py-2 border-b border-gray-700/50 hover:bg-gray-700/30 rounded px-2"
+                  >
+                    <span className="text-white font-medium">{route.destination}</span>
+                    <span className="text-gray-300 text-xs">{route.nextHop}</span>
+                    <span className="font-mono font-bold text-blue-400">{route.cost}</span>
+                    <span className="text-gray-400 text-xs flex items-center gap-1">
+                      <ArrowRight className="w-3 h-3" />
+                      {route.path.join(' → ')}
+                    </span>
+                  </motion.div>
+                ))}
+              </div>
+              
+              <div className="mt-3 p-2 bg-green-900/20 rounded-lg border border-green-500/30">
+                <div className="text-xs text-green-300">
+                  <strong>最短路径树(SPT)已构建完成</strong>
+                  <br />
+                  所有Cost值基于当前链路参数实时计算
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </div>
     </SceneLayout>
   );
 }

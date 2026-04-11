@@ -40,13 +40,13 @@ const TCP_PATH: TransferPath = {
   latency: 50,
   cpuCopy: 4,
   steps: [
-    { id: 'app-copy1', label: '应用内存→内核缓冲区', type: 'cpu', desc: '第1次内存拷贝，CPU参与' },
-    { id: 'proto-proc', label: 'TCP/IP协议栈处理', type: 'kernel', desc: '内核协议栈封装报文头，CPU中断处理' },
-    { id: 'nic-copy', label: '内核缓冲区→NIC', type: 'nic', desc: '第2次内存拷贝，DMA传输到网卡' },
-    { id: 'network-tx', label: '网络传输', type: 'network', desc: '以太网/InfiniBand物理传输' },
-    { id: 'nic-recv', label: 'NIC→内核缓冲区', type: 'nic', desc: '第3次内存拷贝，DMA从网卡接收' },
-    { id: 'proto-proc2', label: 'TCP/IP协议栈解包', type: 'kernel', desc: '内核解封装，CPU中断处理' },
-    { id: 'app-copy2', label: '内核缓冲区→应用内存', type: 'cpu', desc: '第4次内存拷贝，CPU参与' },
+    { id: 'app-copy1', label: '应用→内核缓冲区', type: 'cpu', desc: '发送端：用户态→内核态，第1次内存拷贝，CPU参与' },
+    { id: 'proto-proc', label: 'TCP/IP协议栈处理', type: 'kernel', desc: '封装TCP/IP头部，内核态处理，多次CPU中断' },
+    { id: 'nic-copy', label: '内核缓冲区→NIC', type: 'nic', desc: '第2次拷贝，sk_buff→网卡DMA缓冲区' },
+    { id: 'network-tx', label: '以太网传输', type: 'network', desc: '物理层传输，延迟取决于网络跳数和带宽' },
+    { id: 'nic-recv', label: 'NIC→内核缓冲区', type: 'nic', desc: '接收端：DMA→sk_buff，第3次内存拷贝' },
+    { id: 'proto-proc2', label: 'TCP/IP协议栈解包', type: 'kernel', desc: '内核解封装，校验和验证，CPU中断处理' },
+    { id: 'app-copy2', label: '内核缓冲区→应用', type: 'cpu', desc: '内核态→用户态，第4次内存拷贝，CPU参与' },
   ],
 };
 
@@ -57,11 +57,11 @@ const RDMA_PATH: TransferPath = {
   latency: 2,
   cpuCopy: 0,
   steps: [
-    { id: 'post-wr', label: '应用发布工作请求（WR）', type: 'cpu', desc: '应用只需注册内存区域，发布发送/接收WR，零拷贝' },
-    { id: 'rdma-send', label: 'RDMA NIC直接读取内存', type: 'rdma', desc: 'RNIC绕过CPU和内核，直接从应用内存DMA读取数据' },
-    { id: 'network-tx', label: 'RoCE v2以太网传输', type: 'network', desc: '基于UDP/IP的RoCE v2帧，保留RDMA语义' },
-    { id: 'rdma-write', label: 'RDMA NIC直接写入远端内存', type: 'rdma', desc: '对端RNIC直接将数据写入远端应用内存，无需CPU干预' },
-    { id: 'cq-notify', label: '完成队列（CQ）通知', type: 'cpu', desc: '操作完成后通过CQ通知应用，CPU开销极小' },
+    { id: 'post-wr', label: '发布工作请求(WR)', type: 'cpu', desc: '发送端：应用注册内存区域(MR)，创建队列对(QP)，发布发送WR' },
+    { id: 'rdma-send', label: '本地RNIC DMA读取', type: 'rdma', desc: '发送端RNIC绕过CPU和内核，直接从应用内存DMA读取数据，零拷贝' },
+    { id: 'network-tx', label: 'RoCE v2网络传输', type: 'network', desc: 'UDP/IP封装(目的端口4791)，以太网传输到远端' },
+    { id: 'rdma-write', label: '远端RNIC DMA写入', type: 'rdma', desc: '接收端RNIC直接将数据写入远端应用内存，全程无CPU干预' },
+    { id: 'cq-notify', label: '完成队列(CQ)通知', type: 'cpu', desc: '两端RNIC更新CQ，应用轮询或等待通知，CPU开销极小' },
   ],
 };
 
@@ -177,7 +177,7 @@ const PathAnimation = ({ path, isActive }: { path: TransferPath; isActive: boole
 export function RoCERDMAScene() {
   const [currentStep, setCurrentStep] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [activeDemo, setActiveDemo] = useState<'tcp' | 'rdma' | null>(null);
+  const [activeDemo, setActiveDemo] = useState<'tcp' | 'rdma' | 'both' | null>(null);
 
   const parameters = [
     {
@@ -268,10 +268,11 @@ export function RoCERDMAScene() {
               {[
                 { id: 'tcp', label: 'TCP/IP传输', color: '#f59e0b', desc: '看看多少次拷贝' },
                 { id: 'rdma', label: 'RDMA传输', color: '#22c55e', desc: '零拷贝高性能' },
+                { id: 'both', label: '同时对比', color: '#8b5cf6', desc: '并排对比两种路径' },
               ].map(demo => (
                 <button
                   key={demo.id}
-                  onClick={() => setActiveDemo(activeDemo === demo.id ? null : demo.id as 'tcp' | 'rdma')}
+                  onClick={() => setActiveDemo(activeDemo === demo.id ? null : demo.id as 'tcp' | 'rdma' | 'both')}
                   className="w-full flex items-start gap-2 p-2 rounded text-sm transition-all text-left"
                   style={{
                     backgroundColor: activeDemo === demo.id ? demo.color + '30' : '#1e293b',
@@ -379,7 +380,7 @@ export function RoCERDMAScene() {
                           {[
                             { label: '应用内存', color: '#22c55e', icon: <MemoryStick className="w-3 h-3" /> },
                             { label: '内核空间', color: '#f59e0b', icon: <Cpu className="w-3 h-3" /> },
-                            { label: 'RDMA NIC', color: '#3b82f6', icon: <Network className="w-3 h-3" /> },
+                            { label: 'RDMA网卡(RNIC)', color: '#3b82f6', icon: <Network className="w-3 h-3" /> },
                           ].map(layer => (
                             <div
                               key={layer.label}
@@ -395,9 +396,9 @@ export function RoCERDMAScene() {
                     ))}
                   </div>
 
-                  {/* 传输路径动画 */}
-                  <PathAnimation path={TCP_PATH} isActive={activeDemo === 'tcp'} />
-                  <PathAnimation path={RDMA_PATH} isActive={activeDemo === 'rdma'} />
+                  {/* 传输路径动画 - 支持同时对比 */}
+                  <PathAnimation path={TCP_PATH} isActive={activeDemo === 'tcp' || activeDemo === 'both'} />
+                  <PathAnimation path={RDMA_PATH} isActive={activeDemo === 'rdma' || activeDemo === 'both'} />
 
                   {/* RoCE v2帧结构 */}
                   {currentStepId === 'roce-v2' && (
@@ -409,21 +410,27 @@ export function RoCERDMAScene() {
                       <div className="text-xs font-semibold text-slate-400 mb-2">RoCE v2 帧封装格式</div>
                       <div className="flex gap-0.5 text-xs font-mono">
                         {[
-                          { label: '以太网头', color: '#3b82f6' },
-                          { label: 'IP头', color: '#8b5cf6' },
-                          { label: 'UDP头\n(4791)', color: '#22c55e' },
-                          { label: 'IB Base传输头', color: '#f59e0b' },
-                          { label: 'RDMA有效载荷', color: '#ef4444' },
-                          { label: 'ICRC', color: '#06b6d4' },
+                          { label: '以太网头\n(14B)', color: '#3b82f6' },
+                          { label: 'IP头\n(20B)', color: '#8b5cf6' },
+                          { label: 'UDP\n(8B)', color: '#22c55e' },
+                          { label: 'BTH\n(12B)', color: '#f59e0b' },
+                          { label: 'RDMA\nPayload', color: '#ef4444' },
+                          { label: 'ICRC\n(4B)', color: '#06b6d4' },
+                          { label: 'FCS\n(4B)', color: '#64748b' },
                         ].map(item => (
                           <div
                             key={item.label}
                             className="flex-1 text-center py-2 text-white rounded text-xs leading-tight"
-                            style={{ backgroundColor: item.color + 'bb' }}
+                            style={{ backgroundColor: item.color + 'cc' }}
                           >
                             {item.label}
                           </div>
                         ))}
+                      </div>
+                      <div className="mt-2 text-xs text-slate-500 flex justify-between">
+                        <span>目的端口4791用于识别RoCE v2</span>
+                        <span>ICRC= infiniband CRC校验</span>
+                        <span>FCS= Frame Check Sequence</span>
                       </div>
                     </motion.div>
                   )}

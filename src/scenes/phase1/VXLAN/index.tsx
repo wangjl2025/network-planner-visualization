@@ -90,9 +90,14 @@ export function VXLANScene() {
   };
 
   const startPacketAnimation = useCallback(() => {
+    if (!selectedVNI) return;
     setPacketAnimation(true);
-    setTimeout(() => setPacketAnimation(false), 3000);
-  }, []);
+    console.log('Animation started for VNI:', selectedVNI);
+    setTimeout(() => {
+      setPacketAnimation(false);
+      console.log('Animation ended');
+    }, 3000);
+  }, [selectedVNI]);
 
   const getVNIConnections = (vni: number) => {
     return vteps.filter(v => v.vnis.includes(vni));
@@ -102,7 +107,7 @@ export function VXLANScene() {
     <SceneLayout scene={sceneData} showSidebar={false}>
       <div className="space-y-6 h-full overflow-y-auto">
         {/* 标签页切换 */}
-        <div className="flex gap-2 bg-gray-800/50 p-1 rounded-lg">
+        <div className="flex gap-2 bg-gray-800 p-1 rounded-lg">
           {[
             { id: 'topology', name: 'VXLAN拓扑', icon: Network },
             { id: 'packet', name: '报文封装', icon: Package },
@@ -125,9 +130,9 @@ export function VXLANScene() {
 
         {/* 拓扑视图 */}
         {activeTab === 'topology' && (
-          <div className="bg-gray-800/50 rounded-xl p-6">
+          <div className="bg-gray-800 rounded-xl p-6">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold flex items-center gap-2">
+              <h3 className="text-lg font-semibold text-white flex items-center gap-2">
                 <Network className="w-5 h-5 text-blue-400" />
                 VXLAN Overlay拓扑
               </h3>
@@ -150,8 +155,8 @@ export function VXLANScene() {
 
             <div className="relative h-80">
               {/* Underlay网络 */}
-              <div className="absolute inset-x-4 bottom-4 h-20 bg-gray-700/30 rounded-lg flex items-center justify-center border border-gray-600">
-                <span className="text-gray-500">Underlay IP网络 (Spine-Leaf)</span>
+              <div className="absolute inset-x-4 bottom-4 h-20 bg-gray-700 rounded-lg flex items-center justify-center border border-gray-600">
+                <span className="text-gray-300">Underlay IP网络 (Spine-Leaf)</span>
               </div>
 
               {/* VTEP节点 */}
@@ -164,68 +169,174 @@ export function VXLANScene() {
                     key={vtep.id}
                     className={`absolute w-24 h-24 rounded-xl flex flex-col items-center justify-center border-2 transition-all ${
                       isConnected
-                        ? 'bg-blue-600/30 border-blue-500'
-                        : 'bg-gray-700/50 border-gray-600'
+                        ? packetAnimation 
+                          ? 'bg-blue-500/60 border-blue-300 shadow-lg shadow-blue-400/50'
+                          : 'bg-blue-600/40 border-blue-400'
+                        : 'bg-gray-700 border-gray-500'
                     }`}
                     style={{ left: `${xPos}%`, top: '20%' }}
-                    animate={packetAnimation && isConnected ? { scale: [1, 1.1, 1] } : {}}
-                    transition={{ duration: 0.5, repeat: packetAnimation ? Infinity : 0 }}
+                    animate={packetAnimation && isConnected ? { 
+                      scale: [1, 1.08, 1],
+                      borderColor: ['#60A5FA', '#93C5FD', '#60A5FA']
+                    } : {}}
+                    transition={{ duration: 0.6, repeat: packetAnimation ? 2 : 0 }}
                   >
-                    <Server className={`w-8 h-8 ${isConnected ? 'text-blue-400' : 'text-gray-500'}`} />
-                    <span className="text-xs font-bold mt-1">{vtep.name}</span>
-                    <span className="text-xs text-gray-400">{vtep.ip}</span>
+                    <Server className={`w-8 h-8 ${isConnected ? 'text-blue-200' : 'text-gray-400'}`} />
+                    <span className="text-xs font-bold mt-1 text-white">{vtep.name}</span>
+                    <span className="text-xs text-gray-300">{vtep.ip}</span>
+                    
+                    {/* 数据包接收/发送指示器 */}
+                    {packetAnimation && isConnected && (
+                      <motion.div
+                        className="absolute -top-2 -right-2 w-4 h-4 rounded-full bg-green-400"
+                        animate={{ scale: [1, 1.5, 1], opacity: [1, 0.5, 1] }}
+                        transition={{ duration: 0.5, repeat: 3 }}
+                      />
+                    )}
                   </motion.div>
                 );
               })}
 
-              {/* 隧道连接 */}
-              <svg className="absolute inset-0 pointer-events-none">
+              {/* 隧道连接 - VTEP之间的虚线 */}
+              <svg className="absolute inset-0 w-full h-full pointer-events-none overflow-visible">
                 {selectedVNI &&
                   getVNIConnections(selectedVNI).map((vtep, i, arr) =>
                     arr.slice(i + 1).map((targetVtep) => {
                       const vtepIndex = vteps.findIndex((v) => v.id === vtep.id);
                       const targetIndex = vteps.findIndex((v) => v.id === targetVtep.id);
-                      const x1 = 15 + vtepIndex * 35 + 12;
-                      const x2 = 15 + targetIndex * 35 + 12;
+                      // VTEP节点中心位置: left = 15 + index * 35 + 12 (节点宽度的一半约6%)
+                      const x1 = 15 + vtepIndex * 35 + 6;
+                      const x2 = 15 + targetIndex * 35 + 6;
+                      // VTEP节点垂直中心: top 20% + 高度一半 (约12%) = 32%
                       
                       return (
                         <motion.line
-                          key={`${vtep.id}-${targetVtep.id}`}
+                          key={`tunnel-${vtep.id}-${targetVtep.id}`}
                           x1={`${x1}%`}
-                          y1="35%"
+                          y1="32%"
                           x2={`${x2}%`}
-                          y2="35%"
+                          y2="32%"
                           stroke="#3B82F6"
                           strokeWidth="2"
                           strokeDasharray="5,5"
-                          initial={{ pathLength: 0 }}
-                          animate={{ pathLength: 1 }}
-                          transition={{ duration: 1 }}
+                          initial={{ pathLength: 0, opacity: 0 }}
+                          animate={{ pathLength: 1, opacity: 1 }}
+                          transition={{ duration: 0.8 }}
                         />
                       );
                     })
                   )}
               </svg>
 
+              {/* 数据包流动动画 - 使用绝对定位的 div */}
+              {packetAnimation && selectedVNI &&
+                getVNIConnections(selectedVNI).map((vtep, i, arr) =>
+                  arr.slice(i + 1).map((targetVtep, connIndex) => {
+                    const vtepIndex = vteps.findIndex((v) => v.id === vtep.id);
+                    const targetIndex = vteps.findIndex((v) => v.id === targetVtep.id);
+                    // 与隧道连接线保持一致的位置计算
+                    const left1 = 15 + vtepIndex * 35 + 6;
+                    const left2 = 15 + targetIndex * 35 + 6;
+                    
+                    return (
+                      <React.Fragment key={`packet-group-${vtep.id}-${targetVtep.id}`}>
+                        {/* 正向数据包 */}
+                        <motion.div
+                          key={`packet-${vtep.id}-${targetVtep.id}`}
+                          className="absolute flex items-center justify-center z-20"
+                          style={{ 
+                            top: '32%', 
+                            marginTop: '-12px',
+                            marginLeft: '-12px'
+                          }}
+                          initial={{ left: `${left1}%`, opacity: 0, scale: 0.5 }}
+                          animate={{ 
+                            left: [`${left1}%`, `${left2}%`],
+                            opacity: [0, 1, 1, 0],
+                            scale: [0.5, 1, 1, 0.5]
+                          }}
+                          transition={{ 
+                            duration: 1.2, 
+                            repeat: 2, 
+                            ease: "easeInOut",
+                            delay: connIndex * 0.2
+                          }}
+                        >
+                          <div className="w-6 h-6 rounded-full bg-gradient-to-r from-blue-400 to-cyan-400 shadow-lg shadow-blue-400/60 flex items-center justify-center">
+                            <ArrowRight className="w-3 h-3 text-white" />
+                          </div>
+                          {/* 拖尾效果 */}
+                          <motion.div
+                            className="absolute w-6 h-6 rounded-full bg-blue-400/30"
+                            animate={{ scale: [1, 2], opacity: [0.5, 0] }}
+                            transition={{ duration: 0.5, repeat: Infinity }}
+                          />
+                        </motion.div>
+                        
+                        {/* 反向数据包 */}
+                        <motion.div
+                          key={`packet-reverse-${vtep.id}-${targetVtep.id}`}
+                          className="absolute flex items-center justify-center z-20"
+                          style={{ 
+                            top: '32%', 
+                            marginTop: '-12px',
+                            marginLeft: '-12px'
+                          }}
+                          initial={{ left: `${left2}%`, opacity: 0, scale: 0.5 }}
+                          animate={{ 
+                            left: [`${left2}%`, `${left1}%`],
+                            opacity: [0, 1, 1, 0],
+                            scale: [0.5, 1, 1, 0.5]
+                          }}
+                          transition={{ 
+                            duration: 1.2, 
+                            repeat: 2, 
+                            ease: "easeInOut",
+                            delay: connIndex * 0.2 + 0.3
+                          }}
+                        >
+                          <div className="w-6 h-6 rounded-full bg-gradient-to-r from-cyan-400 to-blue-400 shadow-lg shadow-cyan-400/60 flex items-center justify-center">
+                            <ArrowRight className="w-3 h-3 text-white rotate-180" />
+                          </div>
+                        </motion.div>
+
+                        {/* 传输路径高亮 */}
+                        <motion.div
+                          className="absolute h-0.5 bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-400 z-10"
+                          style={{ 
+                            top: '32%',
+                            left: `${Math.min(left1, left2)}%`,
+                            width: `${Math.abs(left2 - left1)}%`
+                          }}
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: [0, 0.6, 0] }}
+                          transition={{ duration: 1.2, repeat: 2 }}
+                        />
+                      </React.Fragment>
+                    );
+                  })
+                )}
+
               {/* VM节点 */}
               {vteps.map((vtep, vtepIndex) =>
                 vtep.vnis.map((vni, vmIndex) => (
                   <motion.div
                     key={`${vtep.id}-vm-${vni}`}
-                    className={`absolute w-16 h-16 rounded-lg flex flex-col items-center justify-center border ${
+                    className={`absolute w-16 h-16 rounded-lg flex flex-col items-center justify-center border-2 ${
                       selectedVNI === vni
-                        ? 'bg-purple-600/30 border-purple-500'
-                        : 'bg-gray-700/30 border-gray-600'
+                        ? 'bg-purple-600/50 border-purple-400 shadow-lg shadow-purple-500/30'
+                        : 'bg-gray-700 border-gray-500'
                     }`}
                     style={{
                       left: `${15 + vtepIndex * 35 - 8 + vmIndex * 16}%`,
                       top: '5%',
+                      zIndex: 5,
                     }}
                   >
-                    <div className="w-6 h-6 rounded-full bg-purple-500/50 flex items-center justify-center text-xs">
+                    <div className="w-6 h-6 rounded-full bg-purple-500 flex items-center justify-center text-xs text-white font-medium">
                       VM
                     </div>
-                    <span className="text-xs text-gray-400">VNI {vni}</span>
+                    <span className="text-xs text-gray-300 mt-1">VNI {vni}</span>
                   </motion.div>
                 ))
               )}
@@ -234,7 +345,7 @@ export function VXLANScene() {
             <div className="mt-4 flex justify-center">
               <button
                 onClick={startPacketAnimation}
-                className="px-6 py-3 bg-blue-600 hover:bg-blue-500 rounded-lg font-semibold transition-colors flex items-center gap-2"
+                className="px-6 py-3 bg-blue-600 hover:bg-blue-500 rounded-lg font-semibold text-white transition-colors flex items-center gap-2"
               >
                 <ArrowRight className="w-5 h-5" />
                 模拟数据包传输
@@ -245,8 +356,8 @@ export function VXLANScene() {
 
         {/* 报文封装视图 */}
         {activeTab === 'packet' && (
-          <div className="bg-gray-800/50 rounded-xl p-6">
-            <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
+          <div className="bg-gray-800 rounded-xl p-6">
+            <h3 className="text-lg font-semibold text-white mb-6 flex items-center gap-2">
               <Package className="w-5 h-5 text-green-400" />
               VXLAN报文封装结构
             </h3>
@@ -296,8 +407,8 @@ export function VXLANScene() {
 
         {/* 对比视图 */}
         {activeTab === 'comparison' && (
-          <div className="bg-gray-800/50 rounded-xl p-6">
-            <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
+          <div className="bg-gray-800 rounded-xl p-6">
+            <h3 className="text-lg font-semibold text-white mb-6 flex items-center gap-2">
               <Layers className="w-5 h-5 text-purple-400" />
               VXLAN vs 传统VLAN
             </h3>
@@ -306,10 +417,10 @@ export function VXLANScene() {
               {/* 传统VLAN */}
               <div className="space-y-4">
                 <div className="text-center font-semibold text-yellow-400">传统VLAN</div>
-                <div className="p-4 bg-gray-700/50 rounded-lg space-y-3">
+                <div className="p-4 bg-gray-700 rounded-lg space-y-3">
                   <div className="flex justify-between">
                     <span className="text-gray-400">网络数量</span>
-                    <span className="font-mono">4094 (12位)</span>
+                    <span className="font-mono text-white">4094 (12位)</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-400">广播域</span>
@@ -359,21 +470,21 @@ export function VXLANScene() {
             </div>
 
             <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="p-4 bg-gray-700/50 rounded-lg">
+              <div className="p-4 bg-gray-700 rounded-lg">
                 <div className="font-semibold text-blue-400 mb-2">云计算</div>
-                <div className="text-sm text-gray-400">
+                <div className="text-sm text-gray-300">
                   支持大规模虚拟机迁移，打破二层边界限制
                 </div>
               </div>
-              <div className="p-4 bg-gray-700/50 rounded-lg">
+              <div className="p-4 bg-gray-700 rounded-lg">
                 <div className="font-semibold text-purple-400 mb-2">多租户</div>
-                <div className="text-sm text-gray-400">
+                <div className="text-sm text-gray-300">
                   每个租户独立VNI，地址空间完全隔离
                 </div>
               </div>
-              <div className="p-4 bg-gray-700/50 rounded-lg">
+              <div className="p-4 bg-gray-700 rounded-lg">
                 <div className="font-semibold text-green-400 mb-2">网络虚拟化</div>
-                <div className="text-sm text-gray-400">
+                <div className="text-sm text-gray-300">
                   Overlay与Underlay分离，灵活部署
                 </div>
               </div>

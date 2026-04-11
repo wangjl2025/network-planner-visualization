@@ -6,7 +6,7 @@ interface Scene {
   id: string;
   title: string;
   description: string;
-  phase: 1 | 2 | 3 | 4;
+  phase: 1 | 2 | 3 | 4 | 5;
   category: string;
   difficulty?: 'easy' | 'medium' | 'hard';
   duration?: string;
@@ -22,6 +22,7 @@ const phaseColors = {
   2: 'border-green-500 bg-green-50 dark:bg-green-900/20',
   3: 'border-purple-500 bg-purple-50 dark:bg-purple-900/20',
   4: 'border-orange-500 bg-orange-50 dark:bg-orange-900/20',
+  5: 'border-cyan-500 bg-cyan-50 dark:bg-cyan-900/20',
 };
 
 const phaseBadges = {
@@ -29,6 +30,7 @@ const phaseBadges = {
   2: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300',
   3: 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300',
   4: 'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300',
+  5: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900 dark:text-cyan-300',
 };
 
 export function SceneCard({ scene }: SceneCardProps) {

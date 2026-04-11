@@ -414,15 +414,17 @@ export function NetworkLifecycleScene() {
 
                   {/* 五阶段环形流程 */}
                   <div className="relative">
-                    {/* 中心圆 */}
-                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-20 h-20 rounded-full bg-slate-800 border-2 border-slate-600 flex flex-col items-center justify-center z-10">
-                      <span className="text-xs font-bold text-slate-400">网络</span>
-                      <span className="text-xs font-bold text-slate-400">生命</span>
-                      <span className="text-xs font-bold text-slate-400">周期</span>
+                    {/* 中心圆 - 移到顶部标题位置 */}
+                    <div className="flex justify-center mb-4">
+                      <div className="w-20 h-20 rounded-full bg-slate-800 border-2 border-slate-600 flex flex-col items-center justify-center">
+                        <span className="text-xs font-bold text-slate-400">网络</span>
+                        <span className="text-xs font-bold text-slate-400">生命</span>
+                        <span className="text-xs font-bold text-slate-400">周期</span>
+                      </div>
                     </div>
 
                     {/* 五阶段排列 */}
-                    <div className="flex items-center justify-between px-2">
+                    <div className="flex items-center justify-center gap-2 px-2 flex-wrap">
                       {LIFECYCLE_PHASES.map((phase, i) => {
                         const Icon = phase.icon;
                         const isActive = activePhaseId === phase.id;
@@ -460,10 +462,10 @@ export function NetworkLifecycleScene() {
                               </div>
                             </motion.div>
 
-                            {/* 箭头连接 */}
-                            {i < LIFECYCLE_PHASES.length - 1 && (
+                            {/* 箭头连接 - 仅在非换行时显示 */}
+                            {i < LIFECYCLE_PHASES.length - 1 && i !== 2 && (
                               <motion.div
-                                className="mx-1"
+                                className="mx-1 hidden sm:block"
                                 animate={{ x: [0, 3, 0] }}
                                 transition={{ duration: 1.5, repeat: Infinity }}
                               >

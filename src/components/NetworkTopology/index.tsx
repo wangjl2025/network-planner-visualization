@@ -173,28 +173,69 @@ export function NetworkTopology({
       const pos = getNodePos(node);
       const isRoot = node.type === 'root';
       
-      // 根据Dijkstra结果判断是否已访问
+      // 根据Dijkstra结果和当前动画步骤判断是否已访问
+      // 动画步骤与访问顺序的映射：
+      // Step 0: 初始化 - 无节点访问
+      // Step 1: 选择根节点 - R1作为根
+      // Step 2: 访问R2 - R1, R2已访问
+      // Step 3: 访问R3 - R1, R2, R3已访问
+      // Step 4: 访问R4 - R1, R2, R3, R4已访问
+      // Step 5: 完成 - 全部访问
       let isVisited = false;
+      let isCurrentVisiting = false;
       let distance: number | null = null;
       
       if (dijkstraResult) {
         const visitIndex = dijkstraResult.visited.indexOf(node.id);
-        isVisited = visitIndex !== -1 && visitIndex < currentStep - 1;
         distance = dijkstraResult.distances[node.id];
+        
+        // 根据动画步骤确定访问状态
+        // currentStep: 0=init, 1=root, 2=visit R2, 3=visit R3, 4=visit R4, 5=complete
+        const stepToVisitCount: Record<number, number> = {
+          0: 0,  // 初始化：无节点访问
+          1: 0,  // 选择根节点：R1是根，不算"已访问"
+          2: 1,  // 访问R2：R2已访问
+          3: 2,  // 访问R3：R2, R3已访问
+          4: 3,  // 访问R4：R2, R3, R4已访问
+          5: 3,  // 完成：全部已访问
+        };
+        
+        const visitCount = stepToVisitCount[currentStep] ?? 0;
+        isVisited = visitIndex !== -1 && visitIndex < visitCount;
+        
+        // 当前正在访问的节点（高亮显示）
+        if (currentStep >= 2 && currentStep <= 4) {
+          const currentNodeId = dijkstraResult.visited[currentStep - 1];
+          isCurrentVisiting = node.id === currentNodeId;
+        }
       }
 
       // 节点外圈（发光效果）
-      if (isVisited || isRoot) {
+      if (isVisited || isRoot || isCurrentVisiting) {
         ctx.beginPath();
         ctx.arc(pos.x, pos.y, 28, 0, Math.PI * 2);
-        ctx.fillStyle = isRoot ? 'rgba(220, 38, 38, 0.3)' : 'rgba(59, 130, 246, 0.3)';
+        if (isCurrentVisiting) {
+          ctx.fillStyle = 'rgba(250, 204, 21, 0.5)'; // 黄色高亮当前访问节点
+        } else if (isRoot) {
+          ctx.fillStyle = 'rgba(220, 38, 38, 0.3)';
+        } else {
+          ctx.fillStyle = 'rgba(59, 130, 246, 0.3)';
+        }
         ctx.fill();
       }
 
       // 节点主体
       ctx.beginPath();
       ctx.arc(pos.x, pos.y, 25, 0, Math.PI * 2);
-      ctx.fillStyle = isRoot ? '#dc2626' : isVisited ? '#3b82f6' : '#475569';
+      if (isCurrentVisiting) {
+        ctx.fillStyle = '#facc15'; // 黄色表示当前正在访问
+      } else if (isRoot) {
+        ctx.fillStyle = '#dc2626';
+      } else if (isVisited) {
+        ctx.fillStyle = '#3b82f6';
+      } else {
+        ctx.fillStyle = '#475569';
+      }
       ctx.fill();
 
       // 节点内圈
@@ -206,8 +247,19 @@ export function NetworkTopology({
       // 节点边框
       ctx.beginPath();
       ctx.arc(pos.x, pos.y, 20, 0, Math.PI * 2);
-      ctx.strokeStyle = isRoot ? '#ef4444' : isVisited ? '#60a5fa' : '#64748b';
-      ctx.lineWidth = 3;
+      if (isCurrentVisiting) {
+        ctx.strokeStyle = '#fbbf24'; // 黄色边框
+        ctx.lineWidth = 4; // 更粗的边框
+      } else if (isRoot) {
+        ctx.strokeStyle = '#ef4444';
+        ctx.lineWidth = 3;
+      } else if (isVisited) {
+        ctx.strokeStyle = '#60a5fa';
+        ctx.lineWidth = 3;
+      } else {
+        ctx.strokeStyle = '#64748b';
+        ctx.lineWidth = 2;
+      }
       ctx.stroke();
 
       // 节点标签
@@ -232,7 +284,7 @@ export function NetworkTopology({
     ctx.fillText('OSPF 网络拓扑 - Dijkstra算法演示', 20, 30);
 
     // 绘制图例
-    const legendY = height - 80;
+    const legendY = height - 100;
     ctx.fillStyle = '#22c55e';
     ctx.fillRect(20, legendY, 20, 3);
     ctx.fillStyle = '#94a3b8';
@@ -244,12 +296,17 @@ export function NetworkTopology({
     ctx.fillStyle = '#94a3b8';
     ctx.fillText('已访问节点', 45, legendY + 24);
 
+    ctx.fillStyle = '#facc15';
+    ctx.fillRect(20, legendY + 40, 20, 3);
+    ctx.fillStyle = '#94a3b8';
+    ctx.fillText('当前访问', 45, legendY + 44);
+
     ctx.fillStyle = '#dc2626';
     ctx.beginPath();
-    ctx.arc(30, legendY + 40, 8, 0, Math.PI * 2);
+    ctx.arc(30, legendY + 65, 8, 0, Math.PI * 2);
     ctx.fill();
     ctx.fillStyle = '#94a3b8';
-    ctx.fillText('根节点(R1)', 45, legendY + 44);
+    ctx.fillText('根节点(R1)', 45, legendY + 69);
   }, [nodes, edges, currentStep, showDistances, highlightPath, dijkstraResult]);
 
   // 初始绘制和依赖变化时重绘

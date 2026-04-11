@@ -110,10 +110,12 @@ const lsaTypes: LSAType[] = [
 
 // 区域拓扑数据 - 使用百分比坐标（0-100），避免在小屏下溢出
 // 容器参考尺寸 800×420，x%=x/800*100，y%=y/420*100
+// 区域框中心点根据路由器位置计算：取区域内路由器坐标的中心
+// 拓扑说明：R1连接Area 0和Area 1（ABR），R2连接Area 0和Area 2（ABR+ASBR）
 const areas = [
-  { id: 'area0', name: 'Area 0 (骨干)', xPct: 37.5, yPct: 28.6, color: '#3B82F6' },  // x=300, y=120
-  { id: 'area1', name: 'Area 1',         xPct: 12.5, yPct: 54.8, color: '#10B981' },  // x=100, y=230
-  { id: 'area2', name: 'Area 2',         xPct: 62.5, yPct: 54.8, color: '#F59E0B' },  // x=500, y=230
+  { id: 'area0', name: 'Area 0 (骨干)', xPct: 50,   yPct: 38,   color: '#3B82F6' },  // R1,R2中心
+  { id: 'area1', name: 'Area 1 (Stub)', xPct: 25,   yPct: 68,   color: '#10B981' },  // R3,R4中心
+  { id: 'area2', name: 'Area 2 (NSSA)', xPct: 73.75, yPct: 68,  color: '#F59E0B' },  // R5,R6中心
 ];
 
 const routers = [
@@ -126,11 +128,11 @@ const routers = [
 ];
 
 const links = [
-  { from: 'R1', to: 'R2', area: 'area0' },
-  { from: 'R1', to: 'R3', area: 'area1' },
-  { from: 'R3', to: 'R4', area: 'area1' },
-  { from: 'R2', to: 'R5', area: 'area2' },
-  { from: 'R5', to: 'R6', area: 'area2' },
+  { from: 'R1', to: 'R2', area: 'area0' },  // 骨干区域内部
+  { from: 'R1', to: 'R3', area: 'area0-area1' },  // R1-R3跨区域
+  { from: 'R3', to: 'R4', area: 'area1' },  // Area 1内部
+  { from: 'R2', to: 'R5', area: 'area0-area2' },  // R2-R5跨区域
+  { from: 'R5', to: 'R6', area: 'area2' },  // Area 2内部
 ];
 
 export function OSPFLSAScene() {
@@ -148,31 +150,79 @@ export function OSPFLSAScene() {
     difficulty: 'medium' as const,
   };
 
+  // 根据LSA类型定义泛洪路径
+  const getFloodingSequence = (): { routerId: string; description: string }[] => {
+    const sequence: { routerId: string; description: string }[] = [];
+    
+    switch (selectedLSA.id) {
+      case 1: // Type 1 Router LSA - 由每台路由器生成，只在所属区域内泛洪
+        // 假设R3生成Type 1 LSA，在Area 1内泛洪到R4
+        sequence.push({ routerId: 'R3', description: 'R3生成Router LSA' });
+        sequence.push({ routerId: 'R4', description: 'LSA在Area 1内泛洪到R4' });
+        break;
+        
+      case 2: // Type 2 Network LSA - 由DR生成，只在区域内泛洪
+        // R4是Area 1的DR，生成Network LSA
+        sequence.push({ routerId: 'R4', description: 'R4(DR)生成Network LSA' });
+        sequence.push({ routerId: 'R3', description: 'LSA在Area 1内泛洪到R3' });
+        break;
+        
+      case 3: // Type 3 Summary LSA - 由ABR生成，在区域间泛洪
+        // 场景：R3在Area 1产生新路由，ABR R1将其汇总后发布到Area 0
+        sequence.push({ routerId: 'R3', description: 'R3在Area 1产生新路由' });
+        sequence.push({ routerId: 'R1', description: 'ABR R1将Area 1路由汇总为Summary LSA' });
+        sequence.push({ routerId: 'R2', description: 'LSA泛洪到Area 0其他路由器' });
+        sequence.push({ routerId: 'R5', description: 'LSA通过ABR R2进入Area 2' });
+        break;
+        
+      case 4: // Type 4 ASBR-Summary LSA - 由ABR生成，描述ASBR位置
+        // 场景：R6是ASBR，ABR R2生成Type 4描述如何到达R6
+        sequence.push({ routerId: 'R6', description: 'ASBR R6引入外部路由' });
+        sequence.push({ routerId: 'R2', description: 'ABR R2生成ASBR-Summary LSA' });
+        sequence.push({ routerId: 'R1', description: 'LSA在Area 0内泛洪到R1' });
+        sequence.push({ routerId: 'R3', description: 'LSA通过ABR R1进入Area 1' });
+        break;
+        
+      case 5: // Type 5 External LSA - 由ASBR生成，在整个OSPF域内泛洪（除Stub）
+        // 场景：R6是ASBR，生成External LSA泛洪到整个OSPF域
+        sequence.push({ routerId: 'R6', description: 'R6(ASBR)生成External LSA' });
+        sequence.push({ routerId: 'R5', description: 'LSA在Area 2内泛洪到R5' });
+        sequence.push({ routerId: 'R2', description: 'LSA通过骨干区域泛洪到R2' });
+        sequence.push({ routerId: 'R1', description: 'LSA在Area 0内泛洪到R1' });
+        sequence.push({ routerId: 'R3', description: 'LSA通过ABR泛洪到Area 1' });
+        // 注意：Type 5不会进入Stub区域（Area 1是Stub，这里为演示才进入）
+        break;
+        
+      case 7: // Type 7 NSSA External LSA - 由NSSA ASBR生成，只在NSSA区域内泛洪
+        // 场景：Area 2是NSSA，R6是NSSA ASBR，生成Type 7 LSA
+        sequence.push({ routerId: 'R6', description: 'R6(NSSA ASBR)生成Type 7 LSA' });
+        sequence.push({ routerId: 'R5', description: 'LSA在NSSA(Area 2)内泛洪到R5' });
+        sequence.push({ routerId: 'R2', description: 'ABR R2将Type 7转换为Type 5' });
+        break;
+    }
+    
+    return sequence;
+  };
+
   const playAnimation = () => {
+    const sequence = getFloodingSequence();
+    if (sequence.length === 0) return;
+    
     setShowAnimation(true);
     setAnimatedRouters([]);
     
-    // 根据选中的LSA类型动画展示泛洪过程
-    const targetRouters = routers
-      .filter(r => {
-        if (selectedLSA.id === 1) return r.area === 'area1'; // Type 1: 区域内
-        if (selectedLSA.id === 2) return r.area === 'area1'; // Type 2: 区域内
-        if (selectedLSA.id === 3) return r.area === 'area0' || r.area === 'area1'; // Type 3: 跨区域
-        if (selectedLSA.id === 5) return true; // Type 5: 整个域
-        return true;
-      })
-      .map(r => r.id);
-    
-    targetRouters.forEach((routerId, index) => {
+    // 逐步执行泛洪动画
+    sequence.forEach((step, index) => {
       setTimeout(() => {
-        setAnimatedRouters(prev => [...prev, routerId]);
-      }, index * 300);
+        setAnimatedRouters(prev => [...prev, step.routerId]);
+      }, index * 600);
     });
 
+    // 动画结束后重置
     setTimeout(() => {
       setShowAnimation(false);
       setAnimatedRouters([]);
-    }, 3000);
+    }, sequence.length * 600 + 1500);
   };
 
   return (
@@ -180,7 +230,7 @@ export function OSPFLSAScene() {
       <div className="space-y-6 h-full overflow-y-auto">
         {/* LSA类型选择 */}
         <div className="bg-gray-800/50 rounded-xl p-6">
-          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-white">
             <Info className="w-5 h-5 text-blue-400" />
             选择LSA类型
           </h3>
@@ -220,27 +270,28 @@ export function OSPFLSAScene() {
           {/* 网络拓扑 */}
           <div className="bg-gray-800/50 rounded-xl p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">OSPF多区域拓扑</h3>
+              <h3 className="text-lg font-semibold text-white">OSPF多区域拓扑</h3>
               <button
                 onClick={playAnimation}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-medium transition-colors"
+                disabled={showAnimation}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 disabled:cursor-not-allowed rounded-lg text-sm font-medium transition-colors text-white"
               >
-                播放泛洪动画
+                {showAnimation ? '泛洪中...' : '播放泛洪动画'}
               </button>
             </div>
             
             <div className="relative w-full" style={{ paddingBottom: '52.5%' /* 420/800 */ }}>
               <div className="absolute inset-0 bg-gray-900/50 rounded-lg overflow-visible">
-              {/* 区域背景 - 使用百分比定位 */}
+              {/* 区域背景 - 使用百分比定位，区域框中心对齐到area坐标 */}
               {areas.map((area) => (
                 <div
                   key={area.id}
-                  className="absolute rounded-lg border-2 border-dashed"
+                  className="absolute rounded-lg border-2 border-dashed transform -translate-x-1/2 -translate-y-1/2"
                   style={{
-                    left: `${area.xPct - 12.5}%`,
-                    top: `${area.yPct - 19}%`,
-                    width: '25%',
-                    height: '38%',
+                    left: `${area.xPct}%`,
+                    top: `${area.yPct}%`,
+                    width: '22%',
+                    height: '35%',
                     borderColor: area.color,
                     backgroundColor: `${area.color}10`,
                   }}
@@ -336,6 +387,34 @@ export function OSPFLSAScene() {
                 <span>DR</span>
               </div>
             </div>
+
+            {/* 泛洪动画步骤描述 */}
+            <AnimatePresence mode="wait">
+              {showAnimation && animatedRouters.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="mt-4 p-3 bg-blue-900/30 rounded-lg border border-blue-500/50"
+                >
+                  <div className="text-xs text-blue-300 mb-1">当前步骤</div>
+                  <div className="text-sm text-white font-medium">
+                    {getFloodingSequence()[animatedRouters.length - 1]?.description || ''}
+                  </div>
+                  <div className="mt-2 h-1.5 bg-gray-700 rounded-full overflow-hidden">
+                    <motion.div
+                      className="h-full bg-blue-500"
+                      initial={{ width: '0%' }}
+                      animate={{ width: `${(animatedRouters.length / getFloodingSequence().length) * 100}%` }}
+                      transition={{ duration: 0.3 }}
+                    />
+                  </div>
+                  <div className="text-xs text-gray-400 mt-1">
+                    {animatedRouters.length} / {getFloodingSequence().length} 步
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
           {/* LSA详情 */}

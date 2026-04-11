@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { SceneLayout } from '../../../components/SceneLayout';
-import { Shield, Lock, Eye, FileText, Users, Server, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { Shield, Lock, Eye, FileText, Users, Server, CheckCircle, XCircle, AlertCircle, ClipboardCheck, Download, RotateCcw, BarChart3 } from 'lucide-react';
 
 // 内联类型定义
 interface SecurityRequirement {
@@ -74,19 +74,22 @@ const securityDomains: SecurityDomain[] = [
 ];
 
 const levelDescriptions = {
-  1: { name: '第一级', description: '用户自主保护级', color: 'text-green-400', bg: 'bg-green-500/20' },
-  2: { name: '第二级', description: '系统审计保护级', color: 'text-blue-400', bg: 'bg-blue-500/20' },
-  3: { name: '第三级', description: '安全标记保护级', color: 'text-orange-400', bg: 'bg-orange-500/20' },
+  1: { name: '第一级', description: '自主保护级（用户负主要责任）', color: 'text-green-400', bg: 'bg-green-500/20' },
+  2: { name: '第二级', description: '指导保护级（有监管指导）', color: 'text-blue-400', bg: 'bg-blue-500/20' },
+  3: { name: '第三级', description: '监督保护级（国家强制监督）', color: 'text-orange-400', bg: 'bg-orange-500/20' },
 };
 
 export function SecurityComplianceScene() {
   const [selectedLevel, setSelectedLevel] = useState<1 | 2 | 3>(3);
   const [selectedDomain, setSelectedDomain] = useState<string>('network');
+  const [showChecklist, setShowChecklist] = useState(false);
+  const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
+  const [checklistNotes, setChecklistNotes] = useState<Record<string, string>>({});
 
   const sceneData = {
     id: 'security-compliance',
     title: '等保2.0三级要求',
-    description: '网络安全等级保护2.0标准三级要求详解',
+    description: '网络安全等级保护2.0标准三级要求详解，含交互式测评检查表',
     phase: 3 as const,
     category: '网络安全',
     duration: '8-10分钟',
@@ -99,6 +102,80 @@ export function SecurityComplianceScene() {
   const getRequirementStatus = (req: SecurityRequirement) => {
     const required = selectedLevel === 1 ? req.level1 : selectedLevel === 2 ? req.level2 : req.level3;
     return required;
+  };
+
+  // 获取所有要求项
+  const allRequirements = useMemo(() => {
+    const reqs: { domain: string; domainName: string; req: SecurityRequirement }[] = [];
+    securityDomains.forEach(domain => {
+      domain.requirements.forEach(req => {
+        reqs.push({ domain: domain.id, domainName: domain.name, req });
+      });
+    });
+    return reqs;
+  }, []);
+
+  // 计算检查表统计
+  const checklistStats = useMemo(() => {
+    const requiredReqs = allRequirements.filter(item => {
+      const required = selectedLevel === 1 ? item.req.level1 : selectedLevel === 2 ? item.req.level2 : item.req.level3;
+      return required;
+    });
+    
+    const totalRequired = requiredReqs.length;
+    const checkedCount = requiredReqs.filter(item => checkedItems[item.req.id]).length;
+    const progress = totalRequired > 0 ? Math.round((checkedCount / totalRequired) * 100) : 0;
+    
+    return { totalRequired, checkedCount, progress };
+  }, [allRequirements, checkedItems, selectedLevel]);
+
+  // 切换检查项
+  const toggleCheckItem = (reqId: string) => {
+    setCheckedItems(prev => ({ ...prev, [reqId]: !prev[reqId] }));
+  };
+
+  // 更新备注
+  const updateNote = (reqId: string, note: string) => {
+    setChecklistNotes(prev => ({ ...prev, [reqId]: note }));
+  };
+
+  // 重置检查表
+  const resetChecklist = () => {
+    setCheckedItems({});
+    setChecklistNotes({});
+  };
+
+  // 导出检查表
+  const exportChecklist = () => {
+    const requiredReqs = allRequirements.filter(item => {
+      const required = selectedLevel === 1 ? item.req.level1 : selectedLevel === 2 ? item.req.level2 : item.req.level3;
+      return required;
+    });
+    
+    let report = `等保2.0 ${levelInfo.name} 测评检查表\n`;
+    report += `生成时间: ${new Date().toLocaleString()}\n`;
+    report += `完成进度: ${checklistStats.checkedCount}/${checklistStats.totalRequired} (${checklistStats.progress}%)\n`;
+    report += '='.repeat(50) + '\n\n';
+    
+    requiredReqs.forEach(item => {
+      const status = checkedItems[item.req.id] ? '✓ 已满足' : '✗ 未满足';
+      report += `[${status}] ${item.domainName} - ${item.req.name}\n`;
+      report += `    描述: ${item.req.description}\n`;
+      if (checklistNotes[item.req.id]) {
+        report += `    备注: ${checklistNotes[item.req.id]}\n`;
+      }
+      report += '\n';
+    });
+    
+    const blob = new Blob([report], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `等保2.0_${levelInfo.name}_检查表_${new Date().toISOString().split('T')[0]}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -221,6 +298,167 @@ export function SecurityComplianceScene() {
             </div>
           </div>
         )}
+
+        {/* 交互式检查表 */}
+        <div className="bg-gray-800/50 rounded-xl p-6 border border-indigo-500/30">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+              <ClipboardCheck className="w-5 h-5 text-indigo-400" />
+              等保测评交互式检查表
+            </h3>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowChecklist(!showChecklist)}
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-sm font-medium text-white transition-colors"
+              >
+                {showChecklist ? '收起检查表' : '展开检查表'}
+              </button>
+              {showChecklist && (
+                <>
+                  <button
+                    onClick={resetChecklist}
+                    className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm font-medium text-white transition-colors flex items-center gap-2"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    重置
+                  </button>
+                  <button
+                    onClick={exportChecklist}
+                    className="px-4 py-2 bg-green-600 hover:bg-green-500 rounded-lg text-sm font-medium text-white transition-colors flex items-center gap-2"
+                  >
+                    <Download className="w-4 h-4" />
+                    导出
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* 进度条 */}
+          {showChecklist && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              className="mb-4"
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm text-gray-400 flex items-center gap-2">
+                  <BarChart3 className="w-4 h-4" />
+                  检查进度
+                </span>
+                <span className="text-sm font-medium">
+                  <span className={checklistStats.progress === 100 ? 'text-green-400' : 'text-blue-400'}>
+                    {checklistStats.checkedCount}
+                  </span>
+                  <span className="text-gray-500"> / {checklistStats.totalRequired} </span>
+                  <span className="text-gray-400">({checklistStats.progress}%)</span>
+                </span>
+              </div>
+              <div className="h-3 bg-gray-700 rounded-full overflow-hidden">
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${checklistStats.progress}%` }}
+                  className={`h-full rounded-full transition-colors ${
+                    checklistStats.progress === 100 ? 'bg-green-500' : 'bg-blue-500'
+                  }`}
+                />
+              </div>
+            </motion.div>
+          )}
+
+          {/* 检查表内容 */}
+          <AnimatePresence>
+            {showChecklist && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="space-y-4 max-h-[500px] overflow-y-auto"
+              >
+                {securityDomains.map((domain) => {
+                  const domainReqs = domain.requirements.filter(req => {
+                    const required = selectedLevel === 1 ? req.level1 : selectedLevel === 2 ? req.level2 : req.level3;
+                    return required;
+                  });
+                  
+                  if (domainReqs.length === 0) return null;
+                  
+                  const domainChecked = domainReqs.filter(req => checkedItems[req.id]).length;
+                  const domainProgress = Math.round((domainChecked / domainReqs.length) * 100);
+                  
+                  return (
+                    <div key={domain.id} className="border border-gray-700 rounded-lg overflow-hidden">
+                      <div 
+                        className="p-3 flex items-center justify-between cursor-pointer hover:bg-gray-700/30 transition-colors"
+                        style={{ backgroundColor: `${domain.color}15` }}
+                      >
+                        <div className="flex items-center gap-3">
+                          <domain.icon className="w-5 h-5" style={{ color: domain.color }} />
+                          <span className="font-medium">{domain.name}</span>
+                          <span className="text-xs text-gray-500">
+                            ({domainChecked}/{domainReqs.length})
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-20 h-2 bg-gray-700 rounded-full overflow-hidden">
+                            <div 
+                              className="h-full rounded-full transition-all"
+                              style={{ 
+                                width: `${domainProgress}%`,
+                                backgroundColor: domainProgress === 100 ? '#22c55e' : domain.color
+                              }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                      <div className="p-3 space-y-2">
+                        {domainReqs.map((req) => (
+                          <div 
+                            key={req.id}
+                            className={`p-3 rounded-lg border transition-all ${
+                              checkedItems[req.id] 
+                                ? 'bg-green-900/20 border-green-500/30' 
+                                : 'bg-gray-800/50 border-gray-700'
+                            }`}
+                          >
+                            <div className="flex items-start gap-3">
+                              <button
+                                onClick={() => toggleCheckItem(req.id)}
+                                className={`mt-0.5 w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
+                                  checkedItems[req.id]
+                                    ? 'bg-green-500 border-green-500'
+                                    : 'border-gray-500 hover:border-gray-400'
+                                }`}
+                              >
+                                {checkedItems[req.id] && <CheckCircle className="w-3 h-3 text-white" />}
+                              </button>
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="text-xs px-2 py-0.5 rounded bg-gray-700 text-gray-300">
+                                    {req.category}
+                                  </span>
+                                  <span className="font-medium text-sm">{req.name}</span>
+                                </div>
+                                <p className="text-xs text-gray-400 mb-2">{req.description}</p>
+                                <input
+                                  type="text"
+                                  placeholder="添加备注..."
+                                  value={checklistNotes[req.id] || ''}
+                                  onChange={(e) => updateNote(req.id, e.target.value)}
+                                  className="w-full px-2 py-1 text-xs bg-gray-900/50 border border-gray-700 rounded text-gray-300 placeholder-gray-600 focus:outline-none focus:border-gray-500"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
 
         {/* 等保2.0要点 */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

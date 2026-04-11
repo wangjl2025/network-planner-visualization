@@ -3,6 +3,7 @@ import { scenes } from '../../data/scenes';
 
 // 已实现场景的ID列表
 const IMPLEMENTED_SCENES = [
+  // Phase 1 - 路由协议核心
   'ospf-spf',
   'ospf-lsa',
   'ospf-neighbor',
@@ -14,17 +15,51 @@ const IMPLEMENTED_SCENES = [
   'vxlan-detail',
   'vrrp-ha',
   'spine-leaf',
+  'lacp',
+  'vxlan',
+  'bgp-decision',
+  'stp-spanning-tree',
+  'vlan-trunk',
+  // Phase 2 - 数据中心
   'tier-standard',
   'datacenter-infra',
   'raid',
   'disaster-recovery',
   'storage-protocol',
+  'storage-architecture',
+  'wan-technology',
+  // Phase 3 - 扩展整合
   'ipsec-vpn',
   'defense-depth',
   'wifi6-ofdma',
   'network-lifecycle',
+  'security-compliance',
+  'acl-simulator',
+  'stateful-firewall',
+  'vlsm-calculator',
+  'qos-quality',
+  'snmp-management',
+  'network-troubleshooting',
+  'ids-ips',
+  'wireless-security',
+  // Phase 4 - 高级前沿
   'sdn-architecture',
   'roce-rdma',
+  'tls-handshake',
+  '5g-network-slice',
+  'campus-architecture',
+  // Phase 5 - 网络基础协议
+  'dhcp',
+  'dns',
+  'nat',
+  'ipv6-address',
+  'ipv6-transition',
+  'ddos-defense',
+  'pki-certificate',
+  'pon-access',
+  'tcp-three-way-handshake',
+  'arp-protocol',
+  'tcp-congestion',
 ];
 
 export function Scene() {

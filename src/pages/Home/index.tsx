@@ -37,11 +37,11 @@ export function Home() {
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
         <div className="bg-white dark:bg-gray-800 rounded-xl p-6 text-center border border-gray-200 dark:border-gray-700">
-          <div className="text-3xl font-bold text-blue-600 dark:text-blue-400 mb-1">4</div>
+          <div className="text-3xl font-bold text-blue-600 dark:text-blue-400 mb-1">5</div>
           <div className="text-sm text-gray-600 dark:text-gray-400">学习阶段</div>
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-xl p-6 text-center border border-gray-200 dark:border-gray-700">
-          <div className="text-3xl font-bold text-green-600 dark:text-green-400 mb-1">120+</div>
+          <div className="text-3xl font-bold text-green-600 dark:text-green-400 mb-1">130+</div>
           <div className="text-sm text-gray-600 dark:text-gray-400">可视化镜头</div>
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-xl p-6 text-center border border-gray-200 dark:border-gray-700">
@@ -101,6 +101,32 @@ export function Home() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {scenesByPhase[2].slice(0, 3).map((scene) => (
+            <SceneCard key={scene.id} scene={scene} />
+          ))}
+        </div>
+      </div>
+
+      {/* Phase 5 Preview */}
+      <div className="mb-10">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+              <span className="w-3 h-3 bg-purple-500 rounded-full"></span>
+              Phase 5: 基础协议
+            </h2>
+            <p className="text-gray-600 dark:text-gray-400 mt-1">
+              DHCP、DNS、NAT — 网络通信的基石
+            </p>
+          </div>
+          <a
+            href="/phase/5"
+            className="text-purple-600 dark:text-purple-400 hover:underline text-sm font-medium"
+          >
+            查看全部 →
+          </a>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {scenesByPhase[5].slice(0, 3).map((scene) => (
             <SceneCard key={scene.id} scene={scene} />
           ))}
         </div>

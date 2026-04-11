@@ -111,9 +111,9 @@ export function AnimationPlayer({
         </div>
       </div>
 
-      {/* 步骤导航 */}
+      {/* 步骤导航 - 全部显示，不滚动 */}
       <div className="px-4 pb-4">
-        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin">
+        <div className="flex flex-wrap items-center gap-2">
           {steps.map((step, index) => (
             <button
               key={step.id}

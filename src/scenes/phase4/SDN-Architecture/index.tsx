@@ -1,21 +1,20 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SceneLayout } from '../../../components/SceneLayout';
 import { AnimationPlayer } from '../../../components/AnimationPlayer';
 import { ParameterPanel } from '../../../components/ParameterPanel';
 import { InfoPanel } from '../../../components/InfoPanel';
 import {
-  Layers,
   Server,
-  Network,
+  Router,
+  Monitor,
+  ArrowRight,
   ArrowDown,
   ArrowUp,
-  GitBranch,
-  Cpu,
-  ToggleLeft,
-  ToggleRight,
-  CheckCircle,
-  XCircle,
+  RefreshCw,
+  Zap,
+  Layers,
+  Globe,
 } from 'lucide-react';
 
 // 流表条目
@@ -28,63 +27,119 @@ interface FlowEntry {
   color: string;
 }
 
-// 数据包
-interface Packet {
-  id: number;
-  src: string;
-  dst: string;
-  port: number;
-  currentHop: string;
-  matched: boolean;
-  dropped: boolean;
-  color: string;
-}
-
 const CONTROLLERS = [
-  { id: 'c1', name: 'SDN控制器', ip: '10.0.0.1', role: '主控', color: '#3b82f6' },
+  { id: 'ctrl', name: 'ONOS控制器', ip: '10.0.0.1', x: 400, y: 60, color: '#8b5cf6' },
 ];
 
 const SWITCHES = [
-  { id: 's1', name: '交换机S1', ip: '10.1.0.1', x: 20, y: 65, layer: 'core' },
-  { id: 's2', name: '交换机S2', ip: '10.1.0.2', x: 50, y: 65, layer: 'core' },
-  { id: 's3', name: '交换机S3', ip: '10.1.0.3', x: 80, y: 65, layer: 'core' },
+  { id: 's1', name: 'OpenFlow S1', ip: '10.1.0.1', x: 200, y: 220 },
+  { id: 's2', name: 'OpenFlow S2', ip: '10.1.0.2', x: 400, y: 220 },
+  { id: 's3', name: 'OpenFlow S3', ip: '10.1.0.3', x: 600, y: 220 },
 ];
 
 const HOSTS = [
-  { id: 'h1', name: 'Host 1', ip: '10.2.0.1', switchId: 's1', color: '#22c55e' },
-  { id: 'h2', name: 'Host 2', ip: '10.2.0.2', switchId: 's1', color: '#22c55e' },
-  { id: 'h3', name: 'Host 3', ip: '10.2.0.3', switchId: 's2', color: '#f59e0b' },
-  { id: 'h4', name: 'Host 4', ip: '10.2.0.4', switchId: 's3', color: '#ef4444' },
+  { id: 'h1', name: 'Host 1', ip: '10.2.0.1', x: 100, y: 380, switchId: 's1' },
+  { id: 'h2', name: 'Host 2', ip: '10.2.0.2', x: 200, y: 380, switchId: 's1' },
+  { id: 'h3', name: 'Host 3', ip: '10.2.0.3', x: 350, y: 380, switchId: 's2' },
+  { id: 'h4', name: 'Host 4', ip: '10.2.0.4', x: 500, y: 380, switchId: 's2' },
+  { id: 'h5', name: 'Host 5', ip: '10.2.0.5', x: 600, y: 380, switchId: 's3' },
+];
+
+// 应用层组件
+const APPS = [
+  { id: 'lb', name: '负载均衡', x: 150, y: 30, color: '#3b82f6' },
+  { id: 'fw', name: '防火墙', x: 280, y: 30, color: '#ef4444' },
+  { id: 'te', name: '流量工程', x: 410, y: 30, color: '#22c55e' },
+  { id: 'vm', name: '网络监控', x: 540, y: 30, color: '#f59e0b' },
 ];
 
 const FLOW_TABLE_INITIAL: FlowEntry[] = [
-  { id: 'f1', match: 'src=10.2.0.1, dst=10.2.0.3', action: 'Forward: S2 port 1', priority: 100, hits: 0, color: '#22c55e' },
-  { id: 'f2', match: 'src=10.2.0.1, dst=10.2.0.4', action: 'Forward: S3 port 1', priority: 100, hits: 0, color: '#3b82f6' },
-  { id: 'f3', match: 'dst=10.2.0.2, tcp dport=80', action: 'Forward + Meter(10Mbps)', priority: 200, hits: 0, color: '#8b5cf6' },
-  { id: 'f4', match: '未知流量', action: 'Packet-In → 控制器', priority: 1, hits: 0, color: '#f59e0b' },
+  { id: 'f1', match: 'src=10.2.0.1, dst=10.2.0.3', action: 'Forward: S2:port3', priority: 100, hits: 0, color: '#3b82f6' },
+  { id: 'f2', match: 'src=10.2.0.1, dst=10.2.0.5', action: 'Forward: S3:port3', priority: 100, hits: 0, color: '#22c55e' },
+  { id: 'f3', match: 'tcp_dst=80', action: 'Forward + Mod', priority: 200, hits: 0, color: '#8b5cf6' },
+  { id: 'f4', match: '未匹配流量', action: 'Packet-In → 控制器', priority: 1, hits: 0, color: '#f59e0b' },
 ];
 
 const ANIMATION_STEPS = [
-  { id: 'overview', label: 'SDN架构概述', desc: 'SDN将控制平面与数据平面分离。控制平面集中在SDN控制器（软件），数据平面由OpenFlow交换机（硬件）实现，通过南向接口通信。' },
-  { id: 'layers', label: 'SDN三层架构', desc: '应用层（业务逻辑）→ 控制层（SDN控制器，如OpenDaylight/ONOS）→ 基础设施层（OpenFlow交换机）。北向接口API供应用调用，南向接口下发流规则。' },
-  { id: 'openflow', label: 'OpenFlow协议', desc: 'OpenFlow是SDN南向接口标准协议。控制器通过OF-Config管理交换机，通过OpenFlow协议下发流表，交换机按流表转发，未匹配的送给控制器决策。' },
-  { id: 'packet-in', label: 'Packet-In：首包处理', desc: '交换机收到未知流量时，发送Packet-In消息给控制器。控制器分析后决定如何转发，并下发Flow-Mod消息写入流表。后续同类流量由交换机直接转发。' },
-  { id: 'flow-mod', label: 'Flow-Mod：流规则下发', desc: '控制器向交换机下发Flow-Mod消息，写入流表条目（Match + Action）。Action可以是转发、丢弃、修改报文头、限速等。' },
-  { id: 'forwarding', label: '流表驱动转发', desc: '交换机按优先级查找流表，命中则执行对应Action，未命中则送给控制器处理（miss action）。实现了"一次学习，后续直达"的效果。' },
-  { id: 'nbi', label: '北向接口（NBI）', desc: 'SDN控制器提供REST API（北向接口），上层应用（负载均衡、防火墙策略、流量工程）通过API配置网络行为，无需理解底层网络细节。' },
-  { id: 'traditional-vs-sdn', label: '传统网络 vs SDN', desc: '传统网络：控制平面分布在每台设备，配置复杂，需逐台管理。SDN：控制平面集中，全局视角，可编程，自动化运维效率大幅提升。' },
+  { id: 'topology', label: 'SDN网络拓扑', desc: 'SDN网络由三部分组成：应用层（负载均衡、防火墙等）、控制层（SDN控制器）、基础设施层（OpenFlow交换机）。控制器位于中心，交换机连接各个主机。' },
+  { id: 'southbound', label: '南向接口：OpenFlow', desc: '控制器与交换机之间通过OpenFlow协议通信。这是SDN的核心南向接口，控制器向交换机下发流表，交换机按流表转发数据。' },
+  { id: 'northbound', label: '北向接口：REST API', desc: '应用层通过REST API与控制器通信。例如负载均衡应用请求最优路径，控制器计算后下发流表到交换机。' },
+  { id: 'packet-in', label: 'Packet-In：首包处理', desc: '交换机收到未知流量时（如红色虚线），发送Packet-In消息给控制器请求指令。这是SDN集中控制的体现。' },
+  { id: 'flow-mod', label: 'Flow-Mod：流表下发', desc: '控制器分析后，通过Flow-Mod消息向交换机下发新流表（如绿色实线）。后续同类流量由交换机直接按流表转发。' },
+  { id: 'forward', label: '流表驱动转发', desc: '现在Host1→Host5的流量已写入流表，交换机S1→S3直接按流表转发（蓝色实线），无需再送控制器，实现"一次学习，后续直达"。' },
+  { id: 'multi-controller', label: '控制器集群', desc: '生产环境通常部署多控制器集群（东西向通信），实现高可用和负载均衡。通过BGP-LS或GMPLS同步网络状态。' },
 ];
 
 export function SDNArchitectureScene() {
   const [currentStep, setCurrentStep] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [flowTable, setFlowTable] = useState<FlowEntry[]>(FLOW_TABLE_INITIAL);
-  const [packets, setPackets] = useState<Packet[]>([]);
-  const [packetInProgress, setPacketInProgress] = useState(false);
-  const [activeLayer, setActiveLayer] = useState<string | null>(null);
-  const [sdnMode, setSdnMode] = useState(true);
   const [flowModAnimating, setFlowModAnimating] = useState(false);
   const [packetInAnimating, setPacketInAnimating] = useState(false);
+  const [forwardAnimating, setForwardAnimating] = useState(false);
+  const [activeLayer, setActiveLayer] = useState<string | null>(null);
+  const canvasRef = useRef<SVGSVGElement>(null);
+
+  const currentStepId = ANIMATION_STEPS[currentStep]?.id;
+
+  // 根据步骤控制动画
+  useEffect(() => {
+    setActiveLayer(null);
+    setFlowModAnimating(false);
+    setPacketInAnimating(false);
+    setForwardAnimating(false);
+
+    if (currentStepId === 'southbound') {
+      setActiveLayer('southbound');
+    } else if (currentStepId === 'northbound') {
+      setActiveLayer('northbound');
+    } else if (currentStepId === 'packet-in') {
+      setPacketInAnimating(true);
+    } else if (currentStepId === 'flow-mod') {
+      setFlowModAnimating(true);
+    } else if (currentStepId === 'forward') {
+      setForwardAnimating(true);
+      setFlowTable(prev => prev.map(f => f.id === 'f2' ? { ...f, hits: f.hits + 1 } : f));
+    }
+  }, [currentStepId]);
+
+  // 自动播放
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>;
+    if (isPlaying) {
+      timer = setTimeout(() => {
+        if (currentStep < ANIMATION_STEPS.length - 1) {
+          setCurrentStep(prev => prev + 1);
+        } else {
+          setIsPlaying(false);
+        }
+      }, 4000);
+    }
+    return () => clearTimeout(timer);
+  }, [isPlaying, currentStep]);
+
+  const handleReset = useCallback(() => {
+    setCurrentStep(0);
+    setIsPlaying(false);
+    setFlowTable(FLOW_TABLE_INITIAL);
+    setFlowModAnimating(false);
+    setPacketInAnimating(false);
+    setForwardAnimating(false);
+    setActiveLayer(null);
+  }, []);
+
+  // 模拟Packet-In
+  const simulatePacketIn = useCallback(() => {
+    setPacketInAnimating(true);
+    setTimeout(() => {
+      setPacketInAnimating(false);
+      setFlowModAnimating(true);
+      setTimeout(() => {
+        setFlowModAnimating(false);
+        setFlowTable(prev => prev.map(f => f.id === 'f4' ? { ...f, hits: f.hits + 1 } : f));
+      }, 1500);
+    }, 1200);
+  }, []);
 
   const parameters = [
     {
@@ -96,97 +151,7 @@ export function SDNArchitectureScene() {
         { value: 'onos', label: 'ONOS' },
         { value: 'odl', label: 'OpenDaylight' },
         { value: 'ryu', label: 'Ryu' },
-        { value: 'floodlight', label: 'Floodlight' },
       ],
-    },
-    {
-      id: 'ofVersion',
-      label: 'OpenFlow版本',
-      type: 'select' as const,
-      value: 'of13',
-      options: [
-        { value: 'of10', label: 'OpenFlow 1.0' },
-        { value: 'of13', label: 'OpenFlow 1.3' },
-        { value: 'of15', label: 'OpenFlow 1.5' },
-      ],
-    },
-  ];
-
-  const currentStepId = ANIMATION_STEPS[currentStep]?.id;
-
-  useEffect(() => {
-    const step = currentStepId;
-    if (step === 'layers') setActiveLayer('all');
-    else if (step === 'openflow') setActiveLayer('infra');
-    else if (step === 'nbi') setActiveLayer('app');
-    else setActiveLayer(null);
-  }, [currentStepId]);
-
-  // 模拟Packet-In
-  const simulatePacketIn = useCallback(() => {
-    setPacketInAnimating(true);
-    setTimeout(() => {
-      setFlowModAnimating(true);
-      setTimeout(() => {
-        setFlowModAnimating(false);
-        setPacketInAnimating(false);
-        setFlowTable(prev => prev.map(f => f.id === 'f4' ? { ...f, hits: f.hits + 1 } : f));
-      }, 1500);
-    }, 1200);
-  }, []);
-
-  // 模拟流表命中
-  const simulateFlowHit = useCallback((flowId: string) => {
-    setFlowTable(prev => prev.map(f => f.id === flowId ? { ...f, hits: f.hits + 1 } : f));
-  }, []);
-
-  useEffect(() => {
-    let timer: ReturnType<typeof setTimeout>;
-    if (isPlaying) {
-      timer = setTimeout(() => {
-        if (currentStep < ANIMATION_STEPS.length - 1) {
-          setCurrentStep(prev => prev + 1);
-        } else {
-          setIsPlaying(false);
-        }
-      }, 2800);
-    }
-    return () => clearTimeout(timer);
-  }, [isPlaying, currentStep]);
-
-  const handleReset = useCallback(() => {
-    setCurrentStep(0);
-    setIsPlaying(false);
-    setFlowTable(FLOW_TABLE_INITIAL);
-    setActiveLayer(null);
-    setPacketInAnimating(false);
-    setFlowModAnimating(false);
-  }, []);
-
-  const layers = [
-    {
-      id: 'app',
-      name: '应用层（Application Layer）',
-      color: '#3b82f6',
-      desc: '网络应用与业务逻辑',
-      apps: ['负载均衡', '防火墙策略', '流量工程', 'QoS管理', '网络监控'],
-      interface: '北向接口（REST API）',
-    },
-    {
-      id: 'ctrl',
-      name: '控制层（Control Layer）',
-      color: '#8b5cf6',
-      desc: 'SDN控制器（ONOS / OpenDaylight）',
-      apps: ['全局网络视图', '流表计算', '路径规划', '拓扑发现'],
-      interface: '南向接口（OpenFlow / NETCONF）',
-    },
-    {
-      id: 'infra',
-      name: '基础设施层（Infrastructure Layer）',
-      color: '#22c55e',
-      desc: 'OpenFlow交换机/路由器',
-      apps: ['S1', 'S2', 'S3', '高速转发', '流表存储'],
-      interface: null,
     },
   ];
 
@@ -197,241 +162,289 @@ export function SDNArchitectureScene() {
     description: 'SDN三层架构、OpenFlow协议、流表下发与Packet-In处理过程',
     phase: 4 as const,
     category: '前沿技术',
-    duration: '7-9分钟',
+    duration: '6-8分钟',
     difficulty: 'hard' as const,
     isHot: true,
   };
 
-  return (
-    <SceneLayout
-      scene={sceneData}
-      showSidebar={false}
-    >
-      <div className="grid grid-cols-12 gap-4 h-full overflow-y-auto p-4">
-        {/* 参数面板 */}
-        <div className="col-span-3">
-          <ParameterPanel
-            title="SDN配置"
-            parameters={parameters}
-            onChange={() => {}}
-            onReset={() => {}}
-          />
+  // 获取交换机位置
+  const getSwitchPos = (id: string) => SWITCHES.find(s => s.id === id) || SWITCHES[0];
 
-          {/* 模式切换 */}
-          <div className="mt-4 p-4 bg-slate-800/50 rounded-lg border border-slate-700">
-            <h3 className="text-sm font-semibold text-slate-300 mb-3">网络模式</h3>
-            <div className="space-y-2">
-              {[
-                { id: true, label: 'SDN模式', desc: '集中控制，可编程' },
-                { id: false, label: '传统模式', desc: '分布式控制，逐台配置' },
-              ].map(mode => (
-                <button
-                  key={String(mode.id)}
-                  onClick={() => setSdnMode(mode.id)}
-                  className={`w-full flex items-start gap-2 p-2 rounded text-sm transition-all ${
-                    sdnMode === mode.id
-                      ? 'bg-blue-600/80 text-white border border-blue-500'
-                      : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                  }`}
+  return (
+    <SceneLayout scene={sceneData} showSidebar={false}>
+      <div className="grid grid-cols-12 gap-4 h-full overflow-hidden p-4">
+        {/* 左侧：应用层 */}
+        <div className="col-span-2 flex flex-col gap-2">
+          <div className="bg-blue-600/20 border-2 border-blue-500/50 rounded-lg p-3">
+            <div className="flex items-center gap-2 mb-2">
+              <Layers className="w-4 h-4 text-blue-400" />
+              <span className="text-sm font-bold text-blue-400">应用层</span>
+            </div>
+            <p className="text-xs text-slate-400 mb-3">业务逻辑与网络应用</p>
+            <div className="space-y-1.5">
+              {APPS.map(app => (
+                <motion.div
+                  key={app.id}
+                  className="p-2 rounded text-xs text-center text-white font-medium"
+                  style={{ backgroundColor: app.color }}
+                  animate={activeLayer === 'northbound' ? { scale: 1.05 } : {}}
                 >
-                  {sdnMode === mode.id ? <ToggleRight className="w-4 h-4 mt-0.5 flex-shrink-0" /> : <ToggleLeft className="w-4 h-4 mt-0.5 flex-shrink-0" />}
-                  <div className="text-left">
-                    <div className="font-medium">{mode.label}</div>
-                    <div className="text-xs opacity-70">{mode.desc}</div>
-                  </div>
-                </button>
+                  {app.name}
+                </motion.div>
               ))}
             </div>
           </div>
 
-          {/* 交互操作 */}
-          <div className="mt-4 p-4 bg-slate-800/50 rounded-lg border border-slate-700">
-            <h3 className="text-sm font-semibold text-slate-300 mb-3">交互演示</h3>
-            <div className="space-y-2">
-              <button
-                onClick={simulatePacketIn}
-                disabled={packetInAnimating}
-                className="w-full py-2 px-3 bg-yellow-600 hover:bg-yellow-700 disabled:bg-slate-700 disabled:text-slate-500 text-white rounded text-xs transition-all flex items-center gap-2"
-              >
-                <ArrowUp className="w-3 h-3" />
-                发送未知流量（触发Packet-In）
-              </button>
-              {['f1', 'f2', 'f3'].map(fid => {
-                const f = flowTable.find(x => x.id === fid);
-                if (!f) return null;
-                return (
-                  <button
-                    key={fid}
-                    onClick={() => simulateFlowHit(fid)}
-                    className="w-full py-2 px-3 bg-slate-600 hover:bg-slate-500 text-white rounded text-xs transition-all flex items-center gap-2"
-                    style={{ borderLeft: `3px solid ${f.color}` }}
-                  >
-                    <CheckCircle className="w-3 h-3" style={{ color: f.color }} />
-                    命中流表 {fid.toUpperCase()}
-                  </button>
-                );
-              })}
+          <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-3 flex-1">
+            <div className="text-xs text-slate-400 mb-2">北向接口 REST API</div>
+            <div className="text-xs text-slate-500 space-y-1">
+              <div>• JSON / HTTP</div>
+              <div>• 应用编程接口</div>
+              <div>• 网络抽象化</div>
             </div>
           </div>
         </div>
 
-        {/* 主可视化区域 */}
-        <div className="col-span-6">
-          <div className="bg-slate-900/50 rounded-lg border border-slate-700 p-5 min-h-[460px]">
-            <AnimatePresence mode="wait">
-              {(currentStepId === 'traditional-vs-sdn') ? (
-                /* 传统 vs SDN 对比 */
-                <motion.div
-                  key="compare"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="grid grid-cols-2 gap-4"
-                >
-                  {[
-                    {
-                      title: '传统网络',
-                      color: '#f59e0b',
-                      points: ['控制平面分散在每台设备', '逐台登录配置（CLI）', '协议行为固化，难以更改', '无全局视角，故障排查难', '扩容需手动配置'],
-                      bad: true,
-                    },
-                    {
-                      title: 'SDN网络',
-                      color: '#22c55e',
-                      points: ['控制平面集中在控制器', '统一API配置（REST）', '软件定义行为，灵活可编程', '全局网络视图，智能路由', '自动化编排，快速扩容'],
-                      bad: false,
-                    },
-                  ].map(side => (
-                    <div
-                      key={side.title}
-                      className="p-4 rounded-lg"
-                      style={{ backgroundColor: side.color + '15', border: `1px solid ${side.color}40` }}
+        {/* 中间：主拓扑图 */}
+        <div className="col-span-8">
+          <div className="bg-slate-900/80 rounded-lg border border-slate-700 p-4 h-full">
+            <svg ref={canvasRef} className="w-full h-full" viewBox="0 0 800 420">
+              {/* ===== 区域背景 ===== */}
+              {/* 控制层区域 */}
+              <motion.rect
+                x="50" y="20" width="700" height="100" rx="8"
+                fill="#8b5cf6" fillOpacity="0.08"
+                stroke="#8b5cf6" strokeOpacity={activeLayer === 'southbound' || activeLayer === 'northbound' ? 0.5 : 0.2}
+                strokeWidth="2"
+                animate={{ strokeOpacity: activeLayer ? 0.6 : 0.2 }}
+              />
+              <text x="60" y="45" className="text-xs" fill="#8b5cf6" fillOpacity="0.6">控制层 Control Layer</text>
+
+              {/* 基础设施层区域 */}
+              <motion.rect
+                x="50" y="140" width="700" height="250" rx="8"
+                fill="#22c55e" fillOpacity="0.05"
+                stroke="#22c55e" strokeOpacity={activeLayer === 'southbound' ? 0.5 : 0.2}
+                strokeWidth="2"
+              />
+              <text x="60" y="165" className="text-xs" fill="#22c55e" fillOpacity="0.6">基础设施层 Infrastructure Layer</text>
+
+              {/* ===== 连接线：交换机到控制器（南向） ===== */}
+              {SWITCHES.map((sw, i) => (
+                <motion.line
+                  key={`ctrl-${sw.id}`}
+                  x1={CONTROLLERS[0].x} y1={CONTROLLERS[0].y + 30}
+                  x2={sw.x} y2={sw.y - 25}
+                  stroke="#8b5cf6"
+                  strokeWidth={activeLayer === 'southbound' ? 3 : 1.5}
+                  strokeDasharray={activeLayer === 'southbound' ? "0" : "5,5"}
+                  animate={{ strokeWidth: activeLayer === 'southbound' ? [3, 2, 3] : 1.5 }}
+                />
+              ))}
+
+              {/* ===== 连接线：交换机之间 ===== */}
+              <motion.line
+                x1={SWITCHES[0].x + 25} y1={SWITCHES[0].y}
+                x2={SWITCHES[1].x - 25} y2={SWITCHES[1].y}
+                stroke="#64748b" strokeWidth="1.5"
+              />
+              <motion.line
+                x1={SWITCHES[1].x + 25} y1={SWITCHES[1].y}
+                x2={SWITCHES[2].x - 25} y2={SWITCHES[2].y}
+                stroke="#64748b" strokeWidth="1.5"
+              />
+
+              {/* ===== Packet-In 动画（h1到h5的未知流量） ===== */}
+              <AnimatePresence>
+                {packetInAnimating && (
+                  <>
+                    {/* 从h1发出的未知流量 */}
+                    <motion.circle
+                      r="8" fill="#ef4444"
+                      initial={{ cx: HOSTS[0].x, cy: HOSTS[0].y }}
+                      animate={{ cx: [HOSTS[0].x, SWITCHES[0].x, CONTROLLERS[0].x], cy: [HOSTS[0].y, SWITCHES[0].y, CONTROLLERS[0].y] }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 2, ease: "easeInOut" }}
+                    />
+                    <motion.text
+                      x={CONTROLLERS[0].x + 50} y={CONTROLLERS[0].y - 10}
+                      className="text-xs fill-yellow-400"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
                     >
-                      <h3 className="font-bold mb-3 text-center" style={{ color: side.color }}>{side.title}</h3>
-                      {side.points.map((p, i) => (
-                        <motion.div
-                          key={i}
-                          initial={{ opacity: 0, x: side.bad ? -10 : 10 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: i * 0.1 }}
-                          className="flex items-start gap-2 mb-2 text-xs"
-                        >
-                          {side.bad
-                            ? <XCircle className="w-3 h-3 text-red-400 flex-shrink-0 mt-0.5" />
-                            : <CheckCircle className="w-3 h-3 text-green-400 flex-shrink-0 mt-0.5" />
-                          }
-                          <span className="text-slate-300">{p}</span>
-                        </motion.div>
-                      ))}
-                    </div>
-                  ))}
-                </motion.div>
-              ) : (
-                /* SDN三层架构图 */
-                <motion.div
-                  key="sdn"
+                      Packet-In (未知流量)
+                    </motion.text>
+                  </>
+                )}
+              </AnimatePresence>
+
+              {/* ===== Flow-Mod 动画 ===== */}
+              <AnimatePresence>
+                {flowModAnimating && (
+                  <>
+                    <motion.circle
+                      r="8" fill="#22c55e"
+                      initial={{ cx: CONTROLLERS[0].x, cy: CONTROLLERS[0].y }}
+                      animate={{ cx: [CONTROLLERS[0].x, SWITCHES[2].x], cy: [CONTROLLERS[0].y, SWITCHES[2].y] }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 1.5, ease: "easeInOut" }}
+                    />
+                    <motion.text
+                      x={SWITCHES[2].x + 40} y={SWITCHES[2].y - 15}
+                      className="text-xs fill-green-400"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                    >
+                      Flow-Mod (新规则)
+                    </motion.text>
+                  </>
+                )}
+              </AnimatePresence>
+
+              {/* ===== 转发动画 (Host1 -> Host5) ===== */}
+              <AnimatePresence>
+                {forwardAnimating && (
+                  <>
+                    <motion.circle
+                      r="8" fill="#3b82f6"
+                      initial={{ cx: HOSTS[0].x, cy: HOSTS[0].y }}
+                      animate={{
+                        cx: [HOSTS[0].x, SWITCHES[0].x, SWITCHES[2].x, HOSTS[4].x],
+                        cy: [HOSTS[0].y, SWITCHES[0].y, SWITCHES[2].y, HOSTS[4].y]
+                      }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 2.5, ease: "easeInOut" }}
+                    />
+                    <motion.text
+                      x={300} y={180}
+                      className="text-xs fill-blue-400"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                    >
+                      命中流表 f2 → 直接转发
+                    </motion.text>
+                  </>
+                )}
+              </AnimatePresence>
+
+              {/* ===== 南向接口标签 ===== */}
+              {activeLayer === 'southbound' && (
+                <motion.text
+                  x={CONTROLLERS[0].x} y={CONTROLLERS[0].y + 60}
+                  className="text-xs fill-purple-400"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="space-y-3"
+                  textAnchor="middle"
                 >
-                  {layers.map((layer, i) => {
-                    const isActive = activeLayer === 'all' || activeLayer === layer.id;
-                    const isCtrl = layer.id === 'ctrl';
-                    return (
-                      <div key={layer.id}>
-                        <motion.div
-                          className="rounded-xl p-4 cursor-pointer transition-all"
-                          style={{
-                            backgroundColor: layer.color + (isActive ? '20' : '0a'),
-                            border: `2px solid ${layer.color}${isActive ? 'aa' : '40'}`,
-                            boxShadow: isActive ? `0 0 20px ${layer.color}20` : 'none',
-                          }}
-                          whileHover={{ scale: 1.01 }}
-                          onClick={() => setActiveLayer(activeLayer === layer.id ? null : layer.id)}
-                        >
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-2">
-                              {layer.id === 'app' ? <GitBranch className="w-4 h-4" style={{ color: layer.color }} /> :
-                               layer.id === 'ctrl' ? <Cpu className="w-4 h-4" style={{ color: layer.color }} /> :
-                               <Network className="w-4 h-4" style={{ color: layer.color }} />}
-                              <span className="font-bold text-sm" style={{ color: layer.color }}>{layer.name}</span>
-                            </div>
-                            <span className="text-xs text-slate-500">{layer.desc}</span>
-                          </div>
-                          
-                          {/* 内容展示 */}
-                          <div className="flex flex-wrap gap-2">
-                            {layer.apps.map(app => (
-                              <span
-                                key={app}
-                                className="px-2 py-1 rounded text-xs text-white"
-                                style={{ backgroundColor: layer.color + '50' }}
-                              >
-                                {app}
-                              </span>
-                            ))}
-                          </div>
-
-                          {/* 控制层显示流表控制 */}
-                          {isCtrl && (
-                            <div className="mt-3 grid grid-cols-2 gap-2">
-                              {/* Packet-In动画 */}
-                              <div className="relative p-2 bg-slate-900/50 rounded border border-slate-700">
-                                <div className="text-xs text-slate-400 mb-1">← Packet-In</div>
-                                <AnimatePresence>
-                                  {packetInAnimating && (
-                                    <motion.div
-                                      initial={{ y: 20, opacity: 0 }}
-                                      animate={{ y: 0, opacity: 1 }}
-                                      exit={{ y: -10, opacity: 0 }}
-                                      className="text-xs text-yellow-400 font-mono"
-                                    >
-                                      📦 unknown_pkt
-                                    </motion.div>
-                                  )}
-                                </AnimatePresence>
-                              </div>
-                              {/* Flow-Mod动画 */}
-                              <div className="relative p-2 bg-slate-900/50 rounded border border-slate-700">
-                                <div className="text-xs text-slate-400 mb-1">→ Flow-Mod</div>
-                                <AnimatePresence>
-                                  {flowModAnimating && (
-                                    <motion.div
-                                      initial={{ y: -10, opacity: 0 }}
-                                      animate={{ y: 0, opacity: 1 }}
-                                      exit={{ y: 10, opacity: 0 }}
-                                      className="text-xs text-green-400 font-mono"
-                                    >
-                                      ⚡ add flow_entry
-                                    </motion.div>
-                                  )}
-                                </AnimatePresence>
-                              </div>
-                            </div>
-                          )}
-                        </motion.div>
-
-                        {/* 接口标注 */}
-                        {layer.interface && (
-                          <div className="flex items-center justify-center my-1 gap-2">
-                            <div className="text-xs text-slate-500 flex items-center gap-1">
-                              <ArrowDown className="w-3 h-3 text-slate-500" />
-                              <span>{layer.interface}</span>
-                              <ArrowUp className="w-3 h-3 text-slate-500" />
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </motion.div>
+                  OpenFlow 1.3 / NETCONF / P4Runtime
+                </motion.text>
               )}
-            </AnimatePresence>
+
+              {/* ===== 北向接口标签 ===== */}
+              {activeLayer === 'northbound' && (
+                <>
+                  {APPS.map((app, i) => (
+                    <motion.line
+                      key={`nbi-${app.id}`}
+                      x1={app.x + 40} y1={app.y + 20}
+                      x2={CONTROLLERS[0].x} y2={CONTROLLERS[0].y + 20}
+                      stroke="#3b82f6" strokeWidth="2" strokeDasharray="4,4"
+                      initial={{ pathLength: 0 }}
+                      animate={{ pathLength: 1 }}
+                    />
+                  ))}
+                  <motion.text
+                    x={300} y={15}
+                    className="text-xs fill-blue-400"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                  >
+                    REST API (JSON/HTTP)
+                  </motion.text>
+                </>
+              )}
+
+              {/* ===== 控制器 ===== */}
+              {CONTROLLERS.map(ctrl => (
+                <g key={ctrl.id}>
+                  <motion.rect
+                    x={ctrl.x - 50} y={ctrl.y - 20}
+                    width="100" height="50" rx="8"
+                    fill={ctrl.color} fillOpacity="0.2"
+                    stroke={ctrl.color} strokeWidth="2"
+                    animate={{ boxShadow: activeLayer ? `0 0 20px ${ctrl.color}40` : 'none' }}
+                  />
+                  <Monitor x={ctrl.x - 12} y={ctrl.y - 10} className="w-6 h-6" style={{ color: ctrl.color }} />
+                  <text x={ctrl.x} y={ctrl.y + 20} textAnchor="middle" className="text-xs font-bold" fill="white">{ctrl.name}</text>
+                  <text x={ctrl.x} y={ctrl.y + 32} textAnchor="middle" className="text-[10px]" fill="#94a3b8">{ctrl.ip}</text>
+                </g>
+              ))}
+
+              {/* ===== OpenFlow交换机 ===== */}
+              {SWITCHES.map((sw, i) => (
+                <g key={sw.id}>
+                  <motion.rect
+                    x={sw.x - 40} y={sw.y - 25}
+                    width="80" height="50" rx="6"
+                    fill="#1e293b" fillOpacity="0.8"
+                    stroke={activeLayer === 'southbound' ? '#8b5cf6' : '#475569'}
+                    strokeWidth={activeLayer === 'southbound' ? 2 : 1}
+                  />
+                  <Router x={sw.x - 10} y={sw.y - 15} className="w-5 h-5 text-emerald-400" />
+                  <text x={sw.x} y={sw.y + 8} textAnchor="middle" className="text-xs font-medium" fill="white">{sw.name}</text>
+                  <text x={sw.x} y={sw.y + 20} textAnchor="middle" className="text-[10px]" fill="#94a3b8">{sw.ip}</text>
+
+                  {/* 交换机端口标签 */}
+                  <text x={sw.x - 45} y={sw.y} className="text-[9px]" fill="#64748b">p1</text>
+                  <text x={sw.x} y={sw.y + 35} className="text-[9px]" fill="#64748b">p2</text>
+                  <text x={sw.x + 45} y={sw.y} className="text-[9px]" fill="#64748b">p3</text>
+                </g>
+              ))}
+
+              {/* ===== 主机 ===== */}
+              {HOSTS.map((host, i) => (
+                <g key={host.id}>
+                  <motion.rect
+                    x={host.x - 30} y={host.y - 15}
+                    width="60" height="30" rx="4"
+                    fill="#0f172a" stroke="#334155" strokeWidth="1"
+                  />
+                  <Server x={host.x - 8} y={host.y - 8} className="w-4 h-4 text-slate-400" />
+                  <text x={host.x} y={host.y + 12} textAnchor="middle" className="text-[10px]" fill="#e2e8f0">{host.name}</text>
+                  <text x={host.x} y={host.y + 22} textAnchor="middle" className="text-[9px]" fill="#64748b">{host.ip}</text>
+
+                  {/* 连接到交换机 */}
+                  {(() => {
+                    const sw = getSwitchPos(host.switchId);
+                    const swPort = host.switchId === 's1' ? 0 : host.switchId === 's2' ? 1 : 2;
+                    return (
+                      <motion.line
+                        x1={host.x} y1={host.y - 15}
+                        x2={sw.x} y2={sw.y + 25}
+                        stroke="#334155" strokeWidth="1"
+                      />
+                    );
+                  })()}
+                </g>
+              ))}
+
+              {/* ===== 图例 ===== */}
+              <g transform="translate(620, 360)">
+                <text x="0" y="0" className="text-xs fill-slate-500">图例</text>
+                <line x1="0" y1="10" x2="30" y2="10" stroke="#8b5cf6" strokeWidth="2" />
+                <text x="35" y="14" className="text-[10px]" fill="#64748b">控制通道</text>
+                <line x1="0" y1="25" x2="30" y2="25" stroke="#334155" strokeWidth="1" />
+                <text x="35" y="29" className="text-[10px]" fill="#64748b">数据通道</text>
+                <motion.circle cx="15" cy="40" r="4" fill="#ef4444" />
+                <text x="35" y="44" className="text-[10px]" fill="#64748b">Packet-In</text>
+                <motion.circle cx="15" cy="52" r="4" fill="#22c55e" />
+                <text x="35" y="56" className="text-[10px]" fill="#64748b">Flow-Mod</text>
+              </g>
+            </svg>
           </div>
 
           {/* 动画播放器 */}
-          <div className="mt-4">
+          <div className="mt-3">
             <AnimationPlayer
               steps={ANIMATION_STEPS}
               currentStep={currentStep}
@@ -444,58 +457,67 @@ export function SDNArchitectureScene() {
           </div>
         </div>
 
-        {/* 信息面板 */}
-        <div className="col-span-3 space-y-4">
-          <InfoPanel
-            title="当前步骤"
-            content={
-              <div className="text-xs">
-                <div className="font-semibold text-blue-400 mb-2">{ANIMATION_STEPS[currentStep]?.label}</div>
-                <p className="text-slate-400">{ANIMATION_STEPS[currentStep]?.desc}</p>
-              </div>
-            }
-          />
-
-          <InfoPanel
-            title="流表（Flow Table）"
-            content={
-              <div className="space-y-2 text-xs">
-                {flowTable.map(flow => (
-                  <div
-                    key={flow.id}
-                    className="p-2 rounded border"
-                    style={{ borderColor: flow.color + '60', backgroundColor: flow.color + '10' }}
-                  >
-                    <div className="flex justify-between mb-1">
-                      <span className="font-mono text-slate-300">{flow.id.toUpperCase()}</span>
-                      <span className="text-slate-500">命中: {flow.hits}</span>
-                    </div>
-                    <div className="text-slate-400 mb-0.5">匹配: {flow.match}</div>
-                    <div style={{ color: flow.color }}>动作: {flow.action}</div>
-                    <div className="text-slate-600">优先级: {flow.priority}</div>
+        {/* 右侧：信息面板 */}
+        <div className="col-span-2 flex flex-col gap-3">
+          {/* 流表 */}
+          <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-3 flex-1 overflow-auto">
+            <div className="flex items-center gap-2 mb-2">
+              <Zap className="w-4 h-4 text-yellow-400" />
+              <span className="text-sm font-semibold text-slate-300">流表 (Flow Table)</span>
+            </div>
+            <div className="space-y-2">
+              {flowTable.map(flow => (
+                <motion.div
+                  key={flow.id}
+                  className="p-2 rounded border text-xs"
+                  style={{ borderColor: flow.color + '60', backgroundColor: flow.color + '10' }}
+                  animate={flow.hits > 0 ? { scale: [1, 1.02, 1] } : {}}
+                >
+                  <div className="flex justify-between mb-1">
+                    <span className="font-mono font-bold" style={{ color: flow.color }}>{flow.id.toUpperCase()}</span>
+                    <span className="text-slate-500">命中: {flow.hits}</span>
                   </div>
-                ))}
-              </div>
-            }
-          />
+                  <div className="text-slate-400 truncate">匹配: {flow.match}</div>
+                  <div className="truncate" style={{ color: flow.color }}>→ {flow.action}</div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
 
-          <InfoPanel
-            title="SDN接口对比"
-            content={
-              <div className="space-y-2 text-xs">
-                {[
-                  { name: '北向接口（NBI）', desc: '控制器 ↔ 应用。REST API，供编排系统、OSS/BSS调用', color: '#3b82f6' },
-                  { name: '南向接口（SBI）', desc: '控制器 ↔ 交换机。OpenFlow、NETCONF、P4Runtime', color: '#22c55e' },
-                  { name: '东西向接口', desc: '控制器 ↔ 控制器。多域协同，GMPLS、BGP-LS', color: '#8b5cf6' },
-                ].map(item => (
-                  <div key={item.name} className="p-2 rounded bg-slate-800">
-                    <div className="font-semibold mb-1" style={{ color: item.color }}>{item.name}</div>
-                    <div className="text-slate-400">{item.desc}</div>
-                  </div>
-                ))}
+          {/* SDN接口 */}
+          <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-3">
+            <div className="flex items-center gap-2 mb-2">
+              <Globe className="w-4 h-4 text-cyan-400" />
+              <span className="text-sm font-semibold text-slate-300">SDN接口体系</span>
+            </div>
+            <div className="space-y-2 text-xs">
+              <div className="p-2 rounded bg-blue-500/10 border border-blue-500/30">
+                <div className="font-medium text-blue-400 mb-0.5">北向接口 (NBI)</div>
+                <div className="text-slate-400">REST API (JSON/HTTP)</div>
+                <div className="text-slate-500 mt-0.5">控制器 → 应用层</div>
               </div>
-            }
-          />
+              <div className="p-2 rounded bg-purple-500/10 border border-purple-500/30">
+                <div className="font-medium text-purple-400 mb-0.5">南向接口 (SBI)</div>
+                <div className="text-slate-400">OpenFlow, NETCONF</div>
+                <div className="text-slate-500 mt-0.5">控制器 → 交换机</div>
+              </div>
+              <div className="p-2 rounded bg-orange-500/10 border border-orange-500/30">
+                <div className="font-medium text-orange-400 mb-0.5">东西向接口</div>
+                <div className="text-slate-400">BGP-LS, XMPP</div>
+                <div className="text-slate-500 mt-0.5">控制器 ↔ 控制器</div>
+              </div>
+            </div>
+          </div>
+
+          {/* 交互操作 */}
+          <button
+            onClick={simulatePacketIn}
+            disabled={packetInAnimating || flowModAnimating}
+            className="w-full py-2 px-3 bg-yellow-600/80 hover:bg-yellow-600 disabled:bg-slate-700 disabled:text-slate-500 text-white rounded text-xs transition-all flex items-center justify-center gap-2"
+          >
+            <RefreshCw className={`w-3 h-3 ${packetInAnimating ? 'animate-spin' : ''}`} />
+            模拟Packet-In流程
+          </button>
         </div>
       </div>
     </SceneLayout>

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { SceneLayout } from '../../../components/SceneLayout';
-import { Play, Pause, RotateCcw, Server, ArrowRight, Globe, Layers, MapPin, Route } from 'lucide-react';
+import { Play, Pause, RotateCcw, Server, ArrowRight, Globe, Layers, MapPin, Route, Target } from 'lucide-react';
 
 // SRv6概览场景
 export function SRv6OverviewScene() {
@@ -70,33 +70,38 @@ export function SRv6OverviewScene() {
     }
   };
 
+  // 动画步骤（用于SceneLayout）
+  const animationSteps = steps.map((s, i) => ({
+    id: s.id,
+    title: s.title,
+    description: s.description,
+  }));
+
+  // 动画控制属性
+  const animationProps = {
+    steps: animationSteps,
+    currentStep,
+    isPlaying,
+    onPlay: () => setIsPlaying(true),
+    onPause: () => setIsPlaying(false),
+    onStepChange: setCurrentStep,
+    onReset: handleReset,
+  };
+
   return (
     <SceneLayout
       scene={scene}
       showSidebar={false}
+      noHeightLimit={true}
     >
-      <div className="h-full overflow-y-auto">
-      {/* 顶部控制栏 */}
+      <div>
+      {/* 步骤指示器 */}
       <div className="flex items-center justify-between mb-6 p-4 bg-white dark:bg-gray-800 rounded-lg shadow">
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => setIsPlaying(!isPlaying)}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-          >
-            {isPlaying ? <Pause size={18} /> : <Play size={18} />}
-            {isPlaying ? '暂停' : '播放'}
-          </button>
-          <button
-            onClick={handleReset}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors"
-          >
-            <RotateCcw size={18} />
-            重置
-          </button>
-        </div>
-
         <div className="text-sm text-gray-600 dark:text-gray-400">
-          步骤: {currentStep + 1} / {steps.length}
+          当前步骤: <span className="font-medium text-blue-600 dark:text-blue-400">{steps[currentStep]?.title}</span>
+        </div>
+        <div className="text-sm text-gray-600 dark:text-gray-400">
+          {currentStep + 1} / {steps.length}
         </div>
       </div>
 
@@ -110,92 +115,11 @@ export function SRv6OverviewScene() {
           </h3>
 
           {/* 网络拓扑图 */}
-          <div className="relative h-80 bg-gray-50 dark:bg-gray-900 rounded-lg p-6">
-            {/* 源节点 R1 */}
-            <div className="absolute left-4 top-1/2 -translate-y-1/2">
-              <div className={`w-16 h-16 rounded-full border-2 flex flex-col items-center justify-center transition-all ${
-                currentStep >= 0 ? 'bg-green-100 border-green-500' : 'bg-white border-gray-300'
-              }`}>
-                <Server size={20} className={currentStep >= 0 ? 'text-green-600' : 'text-gray-600'} />
-                <span className="text-xs font-medium">R1</span>
-                <span className="text-[10px] text-gray-500">源节点</span>
-              </div>
-            </div>
-
-            {/* 中间节点 */}
-            <div className="absolute left-1/4 top-1/4">
-              <div className={`w-14 h-14 rounded-full border-2 flex flex-col items-center justify-center transition-all ${
-                customPath.includes('R2') ? 'bg-blue-100 border-blue-500' : 'bg-white border-gray-300'
-              }`}>
-                <Server size={18} className="text-gray-600" />
-                <span className="text-xs font-medium">R2</span>
-              </div>
-            </div>
-
-            <div className="absolute left-1/4 bottom-1/4">
-              <div className={`w-14 h-14 rounded-full border-2 flex flex-col items-center justify-center transition-all ${
-                customPath.includes('R3') ? 'bg-blue-100 border-blue-500' : 'bg-white border-gray-300'
-              }`}>
-                <Server size={18} className="text-gray-600" />
-                <span className="text-xs font-medium">R3</span>
-              </div>
-            </div>
-
-            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-              <div className={`w-14 h-14 rounded-full border-2 flex flex-col items-center justify-center transition-all ${
-                customPath.includes('R4') ? 'bg-blue-100 border-blue-500' : 'bg-white border-gray-300'
-              }`}>
-                <Server size={18} className="text-gray-600" />
-                <span className="text-xs font-medium">R4</span>
-              </div>
-            </div>
-
-            <div className="absolute right-1/4 top-1/4">
-              <div className={`w-14 h-14 rounded-full border-2 flex flex-col items-center justify-center transition-all ${
-                customPath.includes('R5') ? 'bg-blue-100 border-blue-500' : 'bg-white border-gray-300'
-              }`}>
-                <Server size={18} className="text-gray-600" />
-                <span className="text-xs font-medium">R5</span>
-              </div>
-            </div>
-
-            <div className="absolute right-1/4 bottom-1/4">
-              <div className={`w-14 h-14 rounded-full border-2 flex flex-col items-center justify-center transition-all ${
-                customPath.includes('R6') ? 'bg-blue-100 border-blue-500' : 'bg-white border-gray-300'
-              }`}>
-                <Server size={18} className="text-gray-600" />
-                <span className="text-xs font-medium">R6</span>
-              </div>
-            </div>
-
-            {/* 目的节点 */}
-            <div className="absolute right-4 top-1/2 -translate-y-1/2">
-              <div className="w-16 h-16 rounded-full bg-purple-100 border-2 border-purple-500 flex flex-col items-center justify-center">
-                <Server size={20} className="text-purple-600" />
-                <span className="text-xs font-medium">R7</span>
-                <span className="text-[10px] text-gray-500">目的</span>
-              </div>
-            </div>
-
-            {/* 连接线 */}
-            <svg className="absolute inset-0 w-full h-full pointer-events-none">
-              {/* 路径高亮 */}
-              {currentStep >= 3 && (
-                <path
-                  d="M 80 160 L 140 80 L 280 160 L 420 80 L 520 160"
-                  fill="none"
-                  stroke="#3B82F6"
-                  strokeWidth="3"
-                  strokeDasharray="8,4"
-                  className="animate-pulse"
-                />
-              )}
-            </svg>
-
-            {/* SRH 展示 */}
+          <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
+            {/* SRH 展示 - 放在拓扑图上方 */}
             {currentStep >= 1 && (
-              <div className="absolute top-4 left-1/2 -translate-x-1/2">
-                <div className="bg-indigo-100 dark:bg-indigo-900/30 rounded-lg p-3 border border-indigo-300">
+              <div className="mb-4 flex justify-center">
+                <div className="bg-indigo-100 dark:bg-indigo-900/30 rounded-lg p-3 border border-indigo-300 inline-block">
                   <div className="text-xs font-medium text-indigo-900 dark:text-indigo-300 mb-2">SRH (Segment Routing Header)</div>
                   <div className="flex items-center gap-2">
                     <div className="text-[10px] bg-white dark:bg-gray-800 px-2 py-1 rounded">Next Header</div>
@@ -217,10 +141,94 @@ export function SRv6OverviewScene() {
               </div>
             )}
 
-            {/* 目的地址变换动画 */}
+            {/* 拓扑图主体 */}
+            <div className="relative h-48">
+              {/* 源节点 R1 */}
+              <div className="absolute left-2 top-1/2 -translate-y-1/2">
+                <div className={`w-14 h-14 rounded-full border-2 flex flex-col items-center justify-center transition-all ${
+                  currentStep >= 0 ? 'bg-green-100 border-green-500' : 'bg-white border-gray-300'
+                }`}>
+                  <Server size={18} className={currentStep >= 0 ? 'text-green-600' : 'text-gray-600'} />
+                  <span className="text-[10px] font-medium">R1</span>
+                </div>
+              </div>
+
+              {/* 中间节点 */}
+              <div className="absolute left-[20%] top-2">
+                <div className={`w-12 h-12 rounded-full border-2 flex flex-col items-center justify-center transition-all ${
+                  customPath.includes('R2') ? 'bg-blue-100 border-blue-500' : 'bg-white border-gray-300'
+                }`}>
+                  <Server size={16} className="text-gray-600" />
+                  <span className="text-[10px] font-medium">R2</span>
+                </div>
+              </div>
+
+              <div className="absolute left-[20%] bottom-2">
+                <div className={`w-12 h-12 rounded-full border-2 flex flex-col items-center justify-center transition-all ${
+                  customPath.includes('R3') ? 'bg-blue-100 border-blue-500' : 'bg-white border-gray-300'
+                }`}>
+                  <Server size={16} className="text-gray-600" />
+                  <span className="text-[10px] font-medium">R3</span>
+                </div>
+              </div>
+
+              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+                <div className={`w-12 h-12 rounded-full border-2 flex flex-col items-center justify-center transition-all ${
+                  customPath.includes('R4') ? 'bg-blue-100 border-blue-500' : 'bg-white border-gray-300'
+                }`}>
+                  <Server size={16} className="text-gray-600" />
+                  <span className="text-[10px] font-medium">R4</span>
+                </div>
+              </div>
+
+              <div className="absolute right-[20%] top-2">
+                <div className={`w-12 h-12 rounded-full border-2 flex flex-col items-center justify-center transition-all ${
+                  customPath.includes('R5') ? 'bg-blue-100 border-blue-500' : 'bg-white border-gray-300'
+                }`}>
+                  <Server size={16} className="text-gray-600" />
+                  <span className="text-[10px] font-medium">R5</span>
+                </div>
+              </div>
+
+              <div className="absolute right-[20%] bottom-2">
+                <div className={`w-12 h-12 rounded-full border-2 flex flex-col items-center justify-center transition-all ${
+                  customPath.includes('R6') ? 'bg-blue-100 border-blue-500' : 'bg-white border-gray-300'
+                }`}>
+                  <Server size={16} className="text-gray-600" />
+                  <span className="text-[10px] font-medium">R6</span>
+                </div>
+              </div>
+
+              {/* 目的节点 */}
+              <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                <div className="w-14 h-14 rounded-full bg-purple-100 border-2 border-purple-500 flex flex-col items-center justify-center">
+                  <Server size={18} className="text-purple-600" />
+                  <span className="text-[10px] font-medium">R7</span>
+                </div>
+              </div>
+
+              {/* 连接线 */}
+              <svg className="absolute inset-0 w-full h-full pointer-events-none">
+                {/* 路径高亮 - 根据 customPath 动态绘制 */}
+                {currentStep >= 3 && customPath.length > 0 && (
+                  <>
+                    {/* R1 到第一个节点 R2 */}
+                    <line x1="30" y1="96" x2="80" y2="24" stroke="#3B82F6" strokeWidth="2" strokeDasharray="6,3" className="animate-pulse" />
+                    {/* R2 到 R4 */}
+                    <line x1="80" y1="24" x2="200" y2="96" stroke="#3B82F6" strokeWidth="2" strokeDasharray="6,3" className="animate-pulse" />
+                    {/* R4 到 R6 */}
+                    <line x1="200" y1="96" x2="320" y2="168" stroke="#3B82F6" strokeWidth="2" strokeDasharray="6,3" className="animate-pulse" />
+                    {/* R6 到 R7 */}
+                    <line x1="320" y1="168" x2="370" y2="96" stroke="#3B82F6" strokeWidth="2" strokeDasharray="6,3" className="animate-pulse" />
+                  </>
+                )}
+              </svg>
+            </div>
+
+            {/* 目的地址变换动画 - 放在拓扑图下方 */}
             {currentStep >= 3 && (
-              <div className="absolute bottom-4 left-1/2 -translate-x-1/2">
-                <div className="flex items-center gap-2 text-xs">
+              <div className="mt-4 flex justify-center">
+                <div className="flex items-center gap-2 text-xs bg-blue-50 dark:bg-blue-900/20 px-3 py-2 rounded-lg">
                   <span className="text-gray-500">目的地址:</span>
                   <span className="font-mono bg-blue-100 dark:bg-blue-900/30 px-2 py-1 rounded">
                     {customPath[0] || 'R7'}::/128
@@ -232,19 +240,99 @@ export function SRv6OverviewScene() {
             )}
           </div>
 
-          {/* 步骤说明 */}
-          <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-            <h4 className="font-semibold text-blue-900 dark:text-blue-300 mb-2">
-              {steps[currentStep].title}
-            </h4>
-            <p className="text-sm text-blue-800 dark:text-blue-200">
-              {steps[currentStep].description}
-            </p>
+          {/* 动画控制区 */}
+          <div className="mt-4 bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+            {/* 播放控制 */}
+            <div className="flex items-center gap-3 mb-4">
+              <button
+                onClick={() => setIsPlaying(!isPlaying)}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+              >
+                {isPlaying ? <Pause size={18} /> : <Play size={18} />}
+                {isPlaying ? '暂停' : '播放'}
+              </button>
+              <button
+                onClick={handleReset}
+                className="flex items-center gap-2 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors"
+              >
+                <RotateCcw size={18} />
+                重置
+              </button>
+              <div className="ml-auto text-sm text-gray-500">
+                {currentStep + 1} / {steps.length}
+              </div>
+            </div>
+
+            {/* 步骤标签 */}
+            <div className="flex flex-wrap gap-2 mb-4">
+              {steps.map((s, idx) => (
+                <button
+                  key={s.id}
+                  onClick={() => setCurrentStep(idx)}
+                  className={`px-3 py-1.5 text-xs rounded-lg transition-colors ${
+                    idx === currentStep
+                      ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 font-medium'
+                      : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  {idx + 1}. {s.title}
+                </button>
+              ))}
+            </div>
+
+            {/* 当前步骤说明 */}
+            <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+              <h4 className="font-semibold text-blue-900 dark:text-blue-300 mb-1">
+                {steps[currentStep].title}
+              </h4>
+              <p className="text-sm text-blue-800 dark:text-blue-200">
+                {steps[currentStep].description}
+              </p>
+            </div>
+          </div>
+
+          {/* 应用场景 */}
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-3">
+              <h4 className="font-semibold text-gray-900 dark:text-white mb-1 text-sm">5G承载</h4>
+              <p className="text-xs text-gray-600 dark:text-gray-400">
+                支持网络切片，满足5G低时延需求
+              </p>
+            </div>
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-3">
+              <h4 className="font-semibold text-gray-900 dark:text-white mb-1 text-sm">云网融合</h4>
+              <p className="text-xs text-gray-600 dark:text-gray-400">
+                统一承载，简化云数据中心互联
+              </p>
+            </div>
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-3">
+              <h4 className="font-semibold text-gray-900 dark:text-white mb-1 text-sm">流量工程</h4>
+              <p className="text-xs text-gray-600 dark:text-gray-400">
+                显式路径控制，实现精细化调度
+              </p>
+            </div>
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-3">
+              <h4 className="font-semibold text-gray-900 dark:text-white mb-1 text-sm">VPN业务</h4>
+              <p className="text-xs text-gray-600 dark:text-gray-400">
+                L3VPN over SRv6，简化部署
+              </p>
+            </div>
           </div>
         </div>
 
         {/* 右侧：信息面板 */}
         <div className="space-y-4">
+          {/* 学习目标 */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+            <h4 className="font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+              <Target className="text-blue-500" size={18} />
+              学习目标
+            </h4>
+            <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+              {scene.description}
+            </p>
+          </div>
+
           {/* Segment类型 */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
             <h4 className="font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
@@ -355,34 +443,6 @@ sr-policy POLICY-1
    segment-list PATH-A`}
             </pre>
           </div>
-        </div>
-      </div>
-
-      {/* 底部：应用场景 */}
-      <div className="mt-6 grid grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
-          <h4 className="font-semibold text-gray-900 dark:text-white mb-2">5G承载</h4>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            支持网络切片，满足5G低时延需求
-          </p>
-        </div>
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
-          <h4 className="font-semibold text-gray-900 dark:text-white mb-2">云网融合</h4>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            统一承载，简化云数据中心互联
-          </p>
-        </div>
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
-          <h4 className="font-semibold text-gray-900 dark:text-white mb-2">流量工程</h4>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            显式路径控制，实现精细化调度
-          </p>
-        </div>
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
-          <h4 className="font-semibold text-gray-900 dark:text-white mb-2">VPN业务</h4>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            L3VPN over SRv6，简化部署
-          </p>
         </div>
       </div>
       </div>

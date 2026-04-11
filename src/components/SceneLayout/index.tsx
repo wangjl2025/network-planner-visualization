@@ -3,13 +3,15 @@ import { ArrowLeft, Clock, Target, AlertCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { AnimationPlayer, type AnimationStep } from '../AnimationPlayer';
 import { ParameterPanel, type Parameter } from '../ParameterPanel';
+import { SceneNavigation } from '../SceneNavigation';
+import { ReferencesPanel } from '../ReferencesPanel';
 
 // Scene 类型定义（内联避免模块导入问题）
 interface Scene {
   id: string;
   title: string;
   description: string;
-  phase: 1 | 2 | 3 | 4;
+  phase: 1 | 2 | 3 | 4 | 5;
   category: string;
   difficulty?: 'easy' | 'medium' | 'hard';
   duration?: string;
@@ -43,6 +45,8 @@ export interface SceneLayoutProps {
   parameterProps?: ParameterPanelProps;
   showSidebar?: boolean;
   fullHeight?: boolean;
+  fluid?: boolean;
+  noHeightLimit?: boolean; // 不限制内容高度，内容自适应
 }
 
 export function SceneLayout({
@@ -52,9 +56,14 @@ export function SceneLayout({
   parameterProps,
   showSidebar = true,
   fullHeight = false,
+  fluid = false,
+  noHeightLimit = false,
 }: SceneLayoutProps) {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      {/* 侧边场景导航 */}
+      <SceneNavigation currentSceneId={scene.id} currentPhase={scene.phase} />
+
       {/* 顶部导航 */}
       <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -91,15 +100,15 @@ export function SceneLayout({
         </div>
       </header>
 
-      {/* 主内容区 */}
-      <main className={`mx-auto px-4 sm:px-6 lg:px-8 py-6 ${fullHeight ? 'flex-1 flex flex-col overflow-hidden' : 'max-w-[1600px]'}`} style={fullHeight ? { height: 'calc(100vh - 64px)' } : undefined}>
+      {/* 主内容区 - 为侧边导航留出空间 */}
+      <main className={`mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:ml-64 max-w-[1920px] ${fullHeight ? 'flex-1 flex flex-col overflow-hidden' : ''}`} style={fullHeight ? { height: 'calc(100vh - 64px)' } : undefined}>
         <div className={`grid gap-6 ${showSidebar ? 'grid-cols-1 lg:grid-cols-4' : 'grid-cols-1'} ${fullHeight ? 'h-full' : ''}`}>
           {/* 左侧/主内容区 - 可视化 */}
           <div className={`${showSidebar ? 'lg:col-span-3' : 'col-span-1'} ${fullHeight ? 'h-full flex flex-col min-h-0' : ''}`}>
             {/* 可视化画布 - 根据内容自适应高度 */}
             {/* showSidebar=false 时 children 是完整页面内容，不限制高度；有侧边栏时用 clamp 固定画布高度 */}
             <div className={`bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden ${fullHeight ? 'flex-1 min-h-0 relative' : ''}`}>
-              <div className={`${fullHeight ? 'absolute inset-0' : showSidebar ? 'h-[clamp(320px,45vh,580px)]' : ''} bg-gray-900 relative`}>
+              <div className={`${fullHeight ? 'absolute inset-0' : showSidebar && !noHeightLimit ? 'h-[clamp(500px,75vh,1000px)]' : ''} bg-gray-900 relative`}>
                 {children}
               </div>
             </div>
@@ -112,24 +121,15 @@ export function SceneLayout({
             )}
           </div>
 
-          {/* 右侧边栏 - 参数和说明 */}
+          {/* 右侧边栏 - 参数面板和参考资料 */}
           {showSidebar && (
-            <div className={`space-y-6 overflow-y-auto`}>
-              {/* 知识点说明 */}
-              <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <Target className="text-blue-600 dark:text-blue-400" size={20} />
-                  <h3 className="font-semibold text-gray-900 dark:text-white">学习目标</h3>
-                </div>
-                <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-                  {scene.description}
-                </p>
-              </div>
-
+            <div className={`space-y-6`}>
               {/* 参数面板 */}
               {parameterProps && (
                 <ParameterPanel {...parameterProps} />
               )}
+              {/* RFC引用和术语对照面板 */}
+              <ReferencesPanel sceneId={scene.id} />
             </div>
           )}
         </div>
