@@ -56,7 +56,6 @@ import IDSIPSScene from './scenes/phase3/IDS-IPS';
 import WirelessSecurityScene from './scenes/phase3/Wireless-Security';
 import CampusArchitectureScene from './scenes/phase4/Campus-Architecture';
 import WANTechnologyScene from './scenes/phase2/WAN-Technology';
-import StorageArchitectureScene from './scenes/phase2/Storage-Architecture';
 
 function App() {
   return (

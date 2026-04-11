@@ -1,6 +1,20 @@
 import React, { useState } from 'react';
-import { getRFCsBySceneId, getRelatedStandardsBySceneId, RFCReference } from '../../data/rfcReferences';
-import { allTerminology, Terminology, searchTerminology } from '../../data/terminology';
+import { getRFCsBySceneId, getRelatedStandardsBySceneId } from '../../data/rfcReferences';
+import { allTerminology, searchTerminology } from '../../data/terminology';
+
+// 内联类型定义避免模块导出问题
+type RFCReference = {
+  number: string;
+  title: string;
+  url?: string;
+}
+
+type Terminology = {
+  en: string;
+  cn: string;
+  abbreviation?: string;
+  description?: string;
+}
 
 interface ReferencesPanelProps {
   sceneId: string;

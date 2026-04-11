@@ -1,7 +1,7 @@
 // 网络术语中英文对照表
 // 统一全站术语翻译，确保一致性
 
-export interface Terminology {
+export type Terminology = {
   en: string;
   cn: string;
   abbreviation?: string;

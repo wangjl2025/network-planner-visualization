@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import SceneLayout from '../../../components/SceneLayout';
+import { SceneLayout } from '../../../components/SceneLayout';
 import { motion } from 'framer-motion';
 import { Activity, TrendingUp, AlertCircle, Play, RotateCcw, Info, BookOpen, BarChart3, Network } from 'lucide-react';
 

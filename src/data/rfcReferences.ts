@@ -1,13 +1,13 @@
 // RFC标准引用映射表
 // 为每个场景添加相关的RFC标准引用
 
-export interface RFCReference {
+export type RFCReference = {
   number: string;
   title: string;
   url?: string;
 }
 
-export interface SceneRFC {
+export type SceneRFC = {
   sceneId: string;
   rfcs: RFCReference[];
   relatedStandards?: string[];
