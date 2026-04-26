@@ -149,7 +149,7 @@ export default function IPv6TransitionScene() {
   };
 
   return (
-    <SceneLayout scene={sceneData} showSidebar={false}>
+    <SceneLayout scene={sceneData} showSidebar={false} noHeightLimit={true}>
       <div className="grid grid-cols-12 gap-4 h-full overflow-hidden p-4">
         {/* 左侧：技术选择和知识点 */}
         <div className="col-span-3 space-y-3 overflow-auto">

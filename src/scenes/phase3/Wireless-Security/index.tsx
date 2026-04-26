@@ -102,8 +102,8 @@ export default function WirelessSecurity() {
   };
 
   return (
-    <SceneLayout scene={scene}>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <SceneLayout scene={scene} noHeightLimit>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 p-6">
         {/* 左侧：协议时间线 */}
         <div className="lg:col-span-1 space-y-4">
           <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200">

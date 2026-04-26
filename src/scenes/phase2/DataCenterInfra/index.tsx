@@ -309,7 +309,7 @@ export function DataCenterInfraScene() {
   };
 
   return (
-    <SceneLayout scene={sceneData} showSidebar={false}>
+    <SceneLayout scene={sceneData} showSidebar={false} noHeightLimit={true}>
       <div className="grid grid-cols-12 gap-4 h-full">
         {/* 参数面板 */}
         <div className="col-span-3 h-full overflow-y-auto">

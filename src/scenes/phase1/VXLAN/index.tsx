@@ -104,7 +104,7 @@ export function VXLANScene() {
   };
 
   return (
-    <SceneLayout scene={sceneData} showSidebar={false}>
+    <SceneLayout scene={sceneData} showSidebar={false} noHeightLimit={true}>
       <div className="space-y-6 h-full overflow-y-auto">
         {/* 标签页切换 */}
         <div className="flex gap-2 bg-gray-800 p-1 rounded-lg">

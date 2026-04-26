@@ -581,7 +581,7 @@ export function DefenseDepthScene() {
   };
 
   return (
-    <SceneLayout scene={sceneData} fluid={false} showSidebar={false}>
+    <SceneLayout scene={sceneData} fluid={false} showSidebar={false} noHeightLimit={true}>
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* 左侧：控制面板 */}
         <div className="lg:col-span-4 space-y-4">

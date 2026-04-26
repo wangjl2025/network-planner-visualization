@@ -21,6 +21,7 @@ import { DisasterRecoveryScene } from './scenes/phase2/DisasterRecovery';
 import { DataCenterInfraScene } from './scenes/phase2/DataCenterInfra';
 import { StorageProtocolScene } from './scenes/phase2/StorageProtocol';
 import { StorageArchitectureScene } from './scenes/phase2/StorageArchitecture';
+import StorageTypesScene from './scenes/phase2/Storage-Types';
 import { IPsecVPNScene } from './scenes/phase3/IPsec-VPN';
 import { DefenseDepthScene } from './scenes/phase3/Defense-Depth';
 import { WiFi6OFDMAScene } from './scenes/phase3/WiFi6-OFDMA';
@@ -82,6 +83,7 @@ function App() {
         <Route path="/scene/datacenter-infra" element={<SceneErrorBoundary sceneName="机房基础设施"><DataCenterInfraScene /></SceneErrorBoundary>} />
         <Route path="/scene/storage-protocol" element={<SceneErrorBoundary sceneName="存储协议对比"><StorageProtocolScene /></SceneErrorBoundary>} />
         <Route path="/scene/storage-architecture" element={<SceneErrorBoundary sceneName="企业存储架构拓扑"><StorageArchitectureScene /></SceneErrorBoundary>} />
+        <Route path="/scene/storage-types" element={<SceneErrorBoundary sceneName="存储类型对比"><StorageTypesScene /></SceneErrorBoundary>} />
         <Route path="/scene/ipsec-vpn" element={<SceneErrorBoundary sceneName="IPsec VPN"><IPsecVPNScene /></SceneErrorBoundary>} />
         <Route path="/scene/defense-depth" element={<SceneErrorBoundary sceneName="纵深防御"><DefenseDepthScene /></SceneErrorBoundary>} />
         <Route path="/scene/wifi6-ofdma" element={<SceneErrorBoundary sceneName="Wi-Fi 6 OFDMA"><WiFi6OFDMAScene /></SceneErrorBoundary>} />

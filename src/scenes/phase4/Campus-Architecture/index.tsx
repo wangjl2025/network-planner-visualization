@@ -95,10 +95,19 @@ export default function CampusArchitecture() {
   const [selectedLayer, setSelectedLayer] = useState<Layer>(layers[0]);
   const [showTraffic, setShowTraffic] = useState(false);
 
+  const sceneData = {
+    id: 'campus-architecture',
+    phase: 4 as const,
+    title: '园区网三层架构设计',
+    category: '网络架构',
+    description: '核心层、汇聚层、接入层三层架构设计，各层功能定位与设备选型',
+    duration: '5-8分钟',
+    difficulty: 'medium' as const,
+  };
+
   return (
     <SceneLayout
-      title="园区网三层架构设计"
-      description="核心层、汇聚层、接入层三层架构设计，各层功能定位与设备选型"
+      scene={sceneData}
     >
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* 左侧：架构图 */}

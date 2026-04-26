@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { SceneLayout } from '../../../components/SceneLayout';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Shield, Eye, Zap, AlertTriangle, CheckCircle, XCircle, Activity } from 'lucide-react';
+import { Shield, Eye, Zap, AlertTriangle, CheckCircle, XCircle, Activity, FileText, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface Attack {
   id: string;
@@ -70,11 +70,53 @@ const severityColors = {
   critical: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
 };
 
+const examPoints = [
+  {
+    title: 'IDS与IPS核心区别',
+    points: [
+      'IDS旁路部署：交换机镜像端口/SPAN分光器，不影响网络路径，不阻断流量',
+      'IPS串联部署：串接在网络路径中（Inline模式），实时检测并阻断恶意流量',
+      'IDS优势：对业务无影响，误报不影响正常流量，适合审计合规场景',
+      'IPS风险：误报会阻断正常业务，需谨慎配置规则库'
+    ]
+  },
+  {
+    title: '检测方法对比',
+    points: [
+      '签名检测（特征库匹配）：基于已知攻击特征库，准确率高但无法检测0day漏洞',
+      '异常检测（行为分析）：建立正常流量基线，可发现未知攻击但误报率高',
+      '混合检测：结合签名和异常检测，平衡准确性与覆盖率',
+      '现代IDS/IPS通常集成机器学习，提升异常检测准确率'
+    ]
+  },
+  {
+    title: '部署位置选择',
+    points: [
+      '边界防火墙后：保护数据中心入口，检测外部攻击流量',
+      '核心交换机旁路：监控全网流量，检测内部威胁',
+      '服务器区（DMZ）：保护关键业务服务器',
+      '云环境：虚拟IDS/IPS（vIDS/vIPS）或云原生安全服务'
+    ]
+  },
+  {
+    title: '典型攻击识别',
+    points: [
+      '端口扫描：短时间内对多个端口发起连接，IDS通过流量模式识别',
+      'DDoS攻击：流量突增超过基线300%，需配合流量清洗设备',
+      'SQL注入：HTTP请求包含SQL关键字（SELECT/UNION/DROP）',
+      'APT攻击：长期潜伏，低慢攻击，需结合威胁情报和沙箱检测'
+    ]
+  }
+];
+
 export default function IDSIPS() {
   const [mode, setMode] = useState<'ids' | 'ips'>('ids');
   const [selectedAttack, setSelectedAttack] = useState<Attack>(attacks[0]);
   const [isDetecting, setIsDetecting] = useState(false);
   const [detectionResult, setDetectionResult] = useState<'detected' | 'blocked' | null>(null);
+  const [showExamPoints, setShowExamPoints] = useState(false);
+  const [animStep, setAnimStep] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
 
   const handleDetect = () => {
     setIsDetecting(true);
@@ -96,7 +138,7 @@ export default function IDSIPS() {
   };
 
   return (
-    <SceneLayout scene={scene}>
+    <SceneLayout scene={scene} showSidebar={false} noHeightLimit={true}>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* 左侧：IDS vs IPS 对比 */}
         <div className="space-y-6">
@@ -424,6 +466,58 @@ export default function IDSIPS() {
               </table>
             </div>
           </div>
+        </div>
+
+        {/* 考试要点折叠面板 */}
+        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg overflow-hidden">
+          <button
+            onClick={() => setShowExamPoints(!showExamPoints)}
+            className="w-full px-6 py-4 flex items-center justify-between bg-gradient-to-r from-red-50 to-orange-50 hover:from-red-100 hover:to-orange-100 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-red-600 rounded-full flex items-center justify-center">
+                <FileText className="w-5 h-5 text-white" />
+              </div>
+              <div className="text-left">
+                <h4 className="font-bold text-gray-800">考试要点总结</h4>
+                <p className="text-sm text-gray-600">IDS/IPS高频考点与易错点</p>
+              </div>
+            </div>
+            {showExamPoints ? <ChevronUp className="w-6 h-6 text-gray-600" /> : <ChevronDown className="w-6 h-6 text-gray-600" />}
+          </button>
+
+          <AnimatePresence>
+            {showExamPoints && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.3 }}
+                className="overflow-hidden"
+              >
+                <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {examPoints.map((section, index) => (
+                    <div key={index} className="bg-gray-50 dark:bg-slate-700/50 rounded-xl p-5">
+                      <h5 className="font-bold text-gray-800 dark:text-gray-200 mb-3 flex items-center gap-2">
+                        <span className="w-6 h-6 bg-red-600 text-white rounded-full flex items-center justify-center text-sm">
+                          {index + 1}
+                        </span>
+                        {section.title}
+                      </h5>
+                      <ul className="space-y-2">
+                        {section.points.map((point, pIndex) => (
+                          <li key={pIndex} className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-300">
+                            <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                            <span>{point}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
     </SceneLayout>

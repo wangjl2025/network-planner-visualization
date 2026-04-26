@@ -271,7 +271,7 @@ export function LACPScene() {
   };
 
   return (
-    <SceneLayout scene={sceneData} showSidebar={false}>
+    <SceneLayout scene={sceneData} showSidebar={false} noHeightLimit={true}>
       <div className="space-y-6 h-full overflow-y-auto">
         {/* 控制按钮 */}
         <div className="flex flex-wrap gap-4">

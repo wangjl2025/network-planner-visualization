@@ -221,6 +221,16 @@ export const scenes: Scene[] = [
     isHot: true,
   },
   {
+    id: 'storage-types',
+    title: '存储类型对比：块存储、文件存储、对象存储',
+    description: '深入理解三种存储架构的原理、协议、性能特点和应用场景，掌握企业存储选型决策。包含块设备映射、NFS/SMB协议、S3 API交互全流程可视化。',
+    phase: 2,
+    category: '存储',
+    difficulty: 'medium',
+    duration: '10-15分钟',
+    isHot: true,
+  },
+  {
     id: 'wan-technology',
     title: '广域网接入技术对比',
     description: 'SDH/MSTP传输网络、xDSL(ADSL/VDSL)、专线(FR/ATM/DDN)、4G/5G核心网架构对比，广域网接入技术选型',

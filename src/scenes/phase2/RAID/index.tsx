@@ -656,7 +656,7 @@ export function RAIDScene() {
 
   // ===== 渲染 =====
   return (
-    <SceneLayout scene={sceneData} showSidebar={false}>
+    <SceneLayout scene={sceneData} showSidebar={false} noHeightLimit={true}>
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 h-full">
         {/* 左侧：参数面板 - 移动端全宽，桌面端3列 */}
         <div className="xl:col-span-3 h-auto xl:h-full overflow-y-auto space-y-4 order-2 xl:order-1">

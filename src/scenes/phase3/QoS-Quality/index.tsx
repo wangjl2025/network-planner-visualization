@@ -317,7 +317,7 @@ show ip rsvp reservation`,
   };
 
   return (
-    <SceneLayout scene={scene}>
+    <SceneLayout scene={scene} showSidebar={false} noHeightLimit={true}>
       <div className="max-w-7xl mx-auto space-y-6">
         {/* 顶部模型切换 */}
         <div className="bg-white rounded-xl shadow-lg p-6">

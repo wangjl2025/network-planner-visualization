@@ -1,4 +1,17 @@
 import { useState, useEffect, useRef } from 'react';
+import { SceneLayout } from '../../../components/SceneLayout';
+
+// Scene 类型定义（内联避免模块导入问题）
+interface Scene {
+  id: string;
+  title: string;
+  description: string;
+  phase: 1 | 2 | 3 | 4 | 5;
+  category: string;
+  difficulty?: 'easy' | 'medium' | 'hard';
+  duration?: string;
+  isHot?: boolean;
+}
 
 type Layer = 'physical' | 'datalink' | 'network' | 'transport' | 'application';
 type Severity = 'critical' | 'high' | 'medium' | 'low';
@@ -14,6 +27,17 @@ interface Case {
   steps: { cmd: string; out: string; tip: string }[];
   topology?: { type: 'star' | 'chain' | 'mesh'; nodes: string[]; faultNode?: number };
 }
+
+const sceneData: Scene = {
+  id: 'network-troubleshooting',
+  phase: 3,
+  title: '网络故障排查',
+  category: '故障处理',
+  description: 'OSI七层排查法 · 典型故障案例 · 诊断工具实战',
+  duration: '8-10分钟',
+  difficulty: 'hard',
+  isHot: true,
+};
 
 const CASES: Case[] = [
   {
@@ -315,246 +339,248 @@ export default function NetworkTroubleshooting() {
   const filteredCases = filterLayer === 'all' ? CASES : CASES.filter(c => c.layer === filterLayer);
 
   return (
-    <div className="min-h-screen bg-gray-950 text-gray-100 p-4">
-      {/* Header */}
-      <div className="mb-5">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-500 to-orange-600 flex items-center justify-center text-xl">🔧</div>
-          <div>
-            <h1 className="text-2xl font-bold text-white">网络故障排查</h1>
-            <p className="text-gray-400 text-sm">OSI七层排查法 · 典型故障案例 · 诊断工具实战</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Left: Case List */}
-        <div className="space-y-3">
-          {/* Filter */}
-          <div className="bg-gray-900 rounded-xl p-3 border border-gray-800">
-            <div className="flex flex-wrap gap-1">
-              <button
-                onClick={() => setFilterLayer('all')}
-                className={`px-2 py-1 rounded text-xs ${filterLayer === 'all' ? 'bg-gray-700 text-white' : 'text-gray-500 hover:text-gray-300'}`}
-              >全部</button>
-              {(['physical', 'datalink', 'network', 'transport', 'application'] as Layer[]).map(l => (
-                <button
-                  key={l}
-                  onClick={() => setFilterLayer(l)}
-                  className={`px-2 py-1 rounded text-xs ${filterLayer === l ? 'text-white' : 'text-gray-500 hover:text-gray-300'}`}
-                  style={{ background: filterLayer === l ? LAYER_COLOR[l] : undefined }}
-                >
-                  {LAYER_NAMES[l]}
-                </button>
-              ))}
+    <SceneLayout scene={sceneData} showSidebar={false} noHeightLimit={true}>
+      <div className="p-6 text-gray-100">
+        {/* Header */}
+        <div className="mb-5">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-500 to-orange-600 flex items-center justify-center text-xl">🔧</div>
+            <div>
+              <h1 className="text-2xl font-bold text-white">网络故障排查</h1>
+              <p className="text-gray-400 text-sm">OSI七层排查法 · 典型故障案例 · 诊断工具实战</p>
             </div>
           </div>
+        </div>
 
-          <div className="bg-gray-900 rounded-xl p-4 border border-gray-800">
-            <h3 className="text-sm font-semibold text-gray-300 mb-3">📋 典型故障案例 ({filteredCases.length})</h3>
-            <div className="space-y-2 max-h-64 overflow-y-auto">
-              {filteredCases.map(c => (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {/* Left: Case List */}
+          <div className="space-y-3">
+            {/* Filter */}
+            <div className="bg-gray-900 rounded-xl p-3 border border-gray-800">
+              <div className="flex flex-wrap gap-1">
                 <button
-                  key={c.id}
-                  onClick={() => setSelectedCase(c)}
-                  className={`w-full text-left p-3 rounded-lg border transition-all ${
-                    selectedCase.id === c.id ? 'border-red-600 bg-gray-800' : 'border-gray-800 hover:bg-gray-800/50'
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full" style={{ background: LAYER_COLOR[c.layer] }}></span>
-                    <span className="text-sm font-medium text-gray-200 flex-1">{c.title}</span>
-                    <span className={`text-xs px-1.5 py-0.5 rounded ${SEVERITY_CONFIG[c.severity].bg}`} style={{ color: SEVERITY_CONFIG[c.severity].color }}>
-                      {SEVERITY_CONFIG[c.severity].label}
-                    </span>
+                  onClick={() => setFilterLayer('all')}
+                  className={`px-2 py-1 rounded text-xs ${filterLayer === 'all' ? 'bg-gray-700 text-white' : 'text-gray-500 hover:text-gray-300'}`}
+                >全部</button>
+                {(['physical', 'datalink', 'network', 'transport', 'application'] as Layer[]).map(l => (
+                  <button
+                    key={l}
+                    onClick={() => setFilterLayer(l)}
+                    className={`px-2 py-1 rounded text-xs ${filterLayer === l ? 'text-white' : 'text-gray-500 hover:text-gray-300'}`}
+                    style={{ background: filterLayer === l ? LAYER_COLOR[l] : undefined }}
+                  >
+                    {LAYER_NAMES[l]}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-gray-900 rounded-xl p-4 border border-gray-800">
+              <h3 className="text-sm font-semibold text-gray-300 mb-3">📋 典型故障案例 ({filteredCases.length})</h3>
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {filteredCases.map(c => (
+                  <button
+                    key={c.id}
+                    onClick={() => setSelectedCase(c)}
+                    className={`w-full text-left p-3 rounded-lg border transition-all ${
+                      selectedCase.id === c.id ? 'border-red-600 bg-gray-800' : 'border-gray-800 hover:bg-gray-800/50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full" style={{ background: LAYER_COLOR[c.layer] }}></span>
+                      <span className="text-sm font-medium text-gray-200 flex-1">{c.title}</span>
+                      <span className={`text-xs px-1.5 py-0.5 rounded ${SEVERITY_CONFIG[c.severity].bg}`} style={{ color: SEVERITY_CONFIG[c.severity].color }}>
+                        {SEVERITY_CONFIG[c.severity].label}
+                      </span>
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1">{c.symptom.slice(0, 25)}...</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* OSI Model */}
+            <div className="bg-gray-900 rounded-xl p-4 border border-gray-800">
+              <h3 className="text-sm font-semibold text-gray-300 mb-3">🔄 OSI七层排查法</h3>
+              <div className="space-y-1">
+                {(['physical', 'datalink', 'network', 'transport', 'application'] as Layer[]).map((l, i) => (
+                  <div key={l} className={`flex items-center gap-2 p-2 rounded ${selectedCase.layer === l ? 'bg-gray-800' : ''}`}>
+                    <span className="text-xs text-gray-600 w-6">L{7 - i}</span>
+                    <span className="w-2 h-2 rounded-full" style={{ background: LAYER_COLOR[l] }}></span>
+                    <span className="text-xs text-gray-300 flex-1">{LAYER_NAMES[l]}</span>
                   </div>
-                  <div className="text-xs text-gray-500 mt-1">{c.symptom.slice(0, 25)}...</div>
-                </button>
-              ))}
+                ))}
+              </div>
+              <div className="mt-3 text-xs text-gray-500 bg-gray-800/50 p-2 rounded">
+                <strong>排查原则：</strong>自下而上，从物理层开始逐层验证
+              </div>
             </div>
+
+            {/* Troubleshooting Flowchart */}
+            <TroubleshootingFlowchart layer={selectedCase.layer} />
           </div>
 
-          {/* OSI Model */}
-          <div className="bg-gray-900 rounded-xl p-4 border border-gray-800">
-            <h3 className="text-sm font-semibold text-gray-300 mb-3">🔄 OSI七层排查法</h3>
-            <div className="space-y-1">
-              {(['physical', 'datalink', 'network', 'transport', 'application'] as Layer[]).map((l, i) => (
-                <div key={l} className={`flex items-center gap-2 p-2 rounded ${selectedCase.layer === l ? 'bg-gray-800' : ''}`}>
-                  <span className="text-xs text-gray-600 w-6">L{7 - i}</span>
-                  <span className="w-2 h-2 rounded-full" style={{ background: LAYER_COLOR[l] }}></span>
-                  <span className="text-xs text-gray-300 flex-1">{LAYER_NAMES[l]}</span>
+          {/* Middle: Diagnosis */}
+          <div className="lg:col-span-2 space-y-4">
+            {/* Case Detail */}
+            <div className="bg-gray-900 rounded-xl p-4 border border-gray-800">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-lg font-semibold text-white">{selectedCase.title}</h3>
+                  <span className={`text-xs px-2 py-0.5 rounded ${SEVERITY_CONFIG[selectedCase.severity].bg}`} style={{ color: SEVERITY_CONFIG[selectedCase.severity].color }}>
+                    {SEVERITY_CONFIG[selectedCase.severity].label}优先级
+                  </span>
                 </div>
-              ))}
-            </div>
-            <div className="mt-3 text-xs text-gray-500 bg-gray-800/50 p-2 rounded">
-              <strong>排查原则：</strong>自下而上，从物理层开始逐层验证
-            </div>
-          </div>
-
-          {/* Troubleshooting Flowchart */}
-          <TroubleshootingFlowchart layer={selectedCase.layer} />
-        </div>
-
-        {/* Middle: Diagnosis */}
-        <div className="lg:col-span-2 space-y-4">
-          {/* Case Detail */}
-          <div className="bg-gray-900 rounded-xl p-4 border border-gray-800">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <h3 className="text-lg font-semibold text-white">{selectedCase.title}</h3>
-                <span className={`text-xs px-2 py-0.5 rounded ${SEVERITY_CONFIG[selectedCase.severity].bg}`} style={{ color: SEVERITY_CONFIG[selectedCase.severity].color }}>
-                  {SEVERITY_CONFIG[selectedCase.severity].label}优先级
+                <span className="px-2 py-1 rounded text-xs" style={{ background: LAYER_COLOR[selectedCase.layer] + '33', color: LAYER_COLOR[selectedCase.layer] }}>
+                  {LAYER_NAMES[selectedCase.layer]}
                 </span>
               </div>
-              <span className="px-2 py-1 rounded text-xs" style={{ background: LAYER_COLOR[selectedCase.layer] + '33', color: LAYER_COLOR[selectedCase.layer] }}>
-                {LAYER_NAMES[selectedCase.layer]}
-              </span>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              <div className="bg-red-900/20 border border-red-800/40 rounded-lg p-3">
-                <div className="text-red-400 text-xs font-medium mb-1">🔴 故障现象</div>
-                <div className="text-gray-300 text-sm">{selectedCase.symptom}</div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div className="bg-red-900/20 border border-red-800/40 rounded-lg p-3">
+                  <div className="text-red-400 text-xs font-medium mb-1">🔴 故障现象</div>
+                  <div className="text-gray-300 text-sm">{selectedCase.symptom}</div>
+                </div>
+                <div className="bg-orange-900/20 border border-orange-800/40 rounded-lg p-3">
+                  <div className="text-orange-400 text-xs font-medium mb-1">⚠️ 根本原因</div>
+                  <div className="text-gray-300 text-sm">{selectedCase.cause}</div>
+                </div>
               </div>
-              <div className="bg-orange-900/20 border border-orange-800/40 rounded-lg p-3">
-                <div className="text-orange-400 text-xs font-medium mb-1">⚠️ 根本原因</div>
-                <div className="text-gray-300 text-sm">{selectedCase.cause}</div>
-              </div>
+
+              {/* Topology */}
+              <TopologyVisualizer topology={selectedCase.topology} />
             </div>
 
-            {/* Topology */}
-            <TopologyVisualizer topology={selectedCase.topology} />
-          </div>
-
-          {/* Diagnosis Steps */}
-          <div className="bg-gray-900 rounded-xl p-4 border border-gray-800">
-            <h3 className="text-sm font-semibold text-gray-300 mb-3">🔍 诊断步骤</h3>
-            <div className="space-y-3">
-              {selectedCase.steps.map((step, idx) => (
-                <div
-                  key={idx}
-                  className={`p-3 rounded-lg border transition-all cursor-pointer ${
-                    currentStep === idx ? 'border-red-600 bg-gray-800' : 'border-gray-800 hover:border-gray-700'
-                  }`}
-                  onClick={() => setCurrentStep(idx)}
-                >
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs ${
-                      currentStep === idx ? 'bg-red-600 text-white' : 'bg-gray-700 text-gray-400'
-                    }`}>{idx + 1}</span>
-                    <code className="text-green-400 text-xs font-mono">{step.cmd}</code>
+            {/* Diagnosis Steps */}
+            <div className="bg-gray-900 rounded-xl p-4 border border-gray-800">
+              <h3 className="text-sm font-semibold text-gray-300 mb-3">🔍 诊断步骤</h3>
+              <div className="space-y-3">
+                {selectedCase.steps.map((step, idx) => (
+                  <div
+                    key={idx}
+                    className={`p-3 rounded-lg border transition-all cursor-pointer ${
+                      currentStep === idx ? 'border-red-600 bg-gray-800' : 'border-gray-800 hover:border-gray-700'
+                    }`}
+                    onClick={() => setCurrentStep(idx)}
+                  >
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs ${
+                        currentStep === idx ? 'bg-red-600 text-white' : 'bg-gray-700 text-gray-400'
+                      }`}>{idx + 1}</span>
+                      <code className="text-green-400 text-xs font-mono">{step.cmd}</code>
+                    </div>
+                    {currentStep === idx && (
+                      <>
+                        <pre className="bg-gray-950 rounded p-2 text-xs text-gray-400 font-mono mb-2 overflow-x-auto">{step.out}</pre>
+                        <div className="text-xs text-yellow-400">💡 {step.tip}</div>
+                      </>
+                    )}
                   </div>
-                  {currentStep === idx && (
-                    <>
-                      <pre className="bg-gray-950 rounded p-2 text-xs text-gray-400 font-mono mb-2 overflow-x-auto">{step.out}</pre>
-                      <div className="text-xs text-yellow-400">💡 {step.tip}</div>
-                    </>
-                  )}
-                </div>
-              ))}
+                ))}
+              </div>
+              <div className="flex gap-2 mt-3">
+                <button
+                  onClick={() => setCurrentStep(Math.max(0, currentStep - 1))}
+                  disabled={currentStep === 0}
+                  className="px-3 py-1.5 bg-gray-800 rounded text-xs disabled:opacity-30"
+                >上一步</button>
+                <button
+                  onClick={() => setCurrentStep(Math.min(selectedCase.steps.length - 1, currentStep + 1))}
+                  disabled={currentStep >= selectedCase.steps.length - 1}
+                  className="px-3 py-1.5 bg-red-700 rounded text-xs disabled:opacity-30"
+                >下一步</button>
+                <button
+                  onClick={() => setShowSolution(!showSolution)}
+                  className="px-3 py-1.5 bg-green-700 rounded text-xs ml-auto"
+                >{showSolution ? '隐藏' : '查看'}解决方案</button>
+              </div>
             </div>
-            <div className="flex gap-2 mt-3">
-              <button
-                onClick={() => setCurrentStep(Math.max(0, currentStep - 1))}
-                disabled={currentStep === 0}
-                className="px-3 py-1.5 bg-gray-800 rounded text-xs disabled:opacity-30"
-              >上一步</button>
-              <button
-                onClick={() => setCurrentStep(Math.min(selectedCase.steps.length - 1, currentStep + 1))}
-                disabled={currentStep >= selectedCase.steps.length - 1}
-                className="px-3 py-1.5 bg-red-700 rounded text-xs disabled:opacity-30"
-              >下一步</button>
-              <button
-                onClick={() => setShowSolution(!showSolution)}
-                className="px-3 py-1.5 bg-green-700 rounded text-xs ml-auto"
-              >{showSolution ? '隐藏' : '查看'}解决方案</button>
-            </div>
-          </div>
 
-          {/* Solution */}
-          {showSolution && (
-            <div className="bg-green-900/20 border border-green-800/40 rounded-xl p-4">
-              <h3 className="text-sm font-semibold text-green-400 mb-2">✅ 解决方案</h3>
-              <pre className="text-sm text-gray-300 whitespace-pre-wrap">{selectedCase.solution}</pre>
-            </div>
-          )}
-
-          {/* Tools Reference */}
-          <div className="bg-gray-900 rounded-xl p-4 border border-gray-800">
-            <h3 className="text-sm font-semibold text-gray-300 mb-3">🛠️ 常用诊断工具速查</h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-              {[
-                { name: 'ping', desc: '测试连通性', layer: 'network', example: 'ping 8.8.8.8' },
-                { name: 'tracert', desc: '追踪路由路径', layer: 'network', example: 'tracert 8.8.8.8' },
-                { name: 'arp', desc: '查看ARP表', layer: 'datalink', example: 'arp -a' },
-                { name: 'netstat', desc: '查看连接状态', layer: 'transport', example: 'netstat -an' },
-                { name: 'nslookup', desc: 'DNS查询', layer: 'application', example: 'nslookup google.com' },
-                { name: 'telnet', desc: '测试端口', layer: 'application', example: 'telnet host 80' },
-                { name: 'show ip route', desc: '查看路由表', layer: 'network', example: 'show ip route' },
-                { name: 'show interfaces', desc: '查看接口状态', layer: 'datalink', example: 'show ip int brief' },
-              ].map(t => (
-                <div key={t.name} className="bg-gray-800/50 rounded p-2 text-xs group hover:bg-gray-800 transition-colors">
-                  <div className="text-cyan-400 font-mono">{t.name}</div>
-                  <div className="text-gray-500">{t.desc}</div>
-                  <div className="text-gray-600 font-mono mt-1 opacity-0 group-hover:opacity-100 transition-opacity">{t.example}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Exam Tips */}
-          <div className="bg-gray-900 rounded-xl p-4 border border-gray-800">
-            <button
-              onClick={() => setShowExamTips(!showExamTips)}
-              className="flex items-center gap-2 text-sm font-semibold text-yellow-400 mb-2"
-            >
-              <span>{showExamTips ? '▼' : '▶'}</span>
-              📚 考试要点总结（案例分析必考）
-            </button>
-            {showExamTips && (
-              <div className="space-y-3 text-sm text-gray-300">
-                <div className="bg-gray-800/50 rounded-lg p-3">
-                  <div className="text-yellow-400 font-medium mb-2">一、故障排查方法论</div>
-                  <ul className="list-disc list-inside space-y-1 text-gray-400">
-                    <li><strong>OSI七层排查法：</strong>自下而上，从物理层开始逐层验证</li>
-                    <li><strong>分而治之法：</strong>将网络分段，缩小故障范围</li>
-                    <li><strong>替换法：</strong>用已知正常的设备/线缆替换怀疑对象</li>
-                    <li><strong>对比法：</strong>对比正常和异常设备的配置/状态</li>
-                  </ul>
-                </div>
-                <div className="bg-gray-800/50 rounded-lg p-3">
-                  <div className="text-yellow-400 font-medium mb-2">二、常见故障现象与原因对应</div>
-                  <ul className="list-disc list-inside space-y-1 text-gray-400">
-                    <li><strong>能ping通IP但打不开网页：</strong>DNS故障或HTTP被ACL阻断</li>
-                    <li><strong>能ping通网关但不通外网：</strong>路由问题或NAT配置错误</li>
-                    <li><strong>网络慢+CRC错误：</strong>双工不匹配或网线质量问题</li>
-                    <li><strong>小数据包正常大数据包丢：</strong>MTU不匹配</li>
-                    <li><strong>全网瘫痪+广播风暴：</strong>STP环路</li>
-                  </ul>
-                </div>
-                <div className="bg-gray-800/50 rounded-lg p-3">
-                  <div className="text-yellow-400 font-medium mb-2">三、常用诊断命令（考试重点）</div>
-                  <ul className="list-disc list-inside space-y-1 text-gray-400">
-                    <li><code className="text-cyan-400">ping -f -l 1472</code> - 测试MTU（-f禁止分片）</li>
-                    <li><code className="text-cyan-400">tracert</code> - 追踪路由，定位故障点</li>
-                    <li><code className="text-cyan-400">show spanning-tree</code> - 检查STP状态</li>
-                    <li><code className="text-cyan-400">show interfaces counters errors</code> - 查看CRC错误</li>
-                    <li><code className="text-cyan-400">show access-lists</code> - 检查ACL规则</li>
-                  </ul>
-                </div>
-                <div className="bg-gray-800/50 rounded-lg p-3">
-                  <div className="text-yellow-400 font-medium mb-2">四、案例分析答题技巧</div>
-                  <ul className="list-disc list-inside space-y-1 text-gray-400">
-                    <li>先根据症状判断故障层次（物理/数据链路/网络/应用）</li>
-                    <li>使用排除法，逐一验证可能原因</li>
-                    <li>给出具体的诊断命令和预期输出</li>
-                    <li>解决方案要具体，包括配置命令</li>
-                  </ul>
-                </div>
+            {/* Solution */}
+            {showSolution && (
+              <div className="bg-green-900/20 border border-green-800/40 rounded-xl p-4">
+                <h3 className="text-sm font-semibold text-green-400 mb-2">✅ 解决方案</h3>
+                <pre className="text-sm text-gray-300 whitespace-pre-wrap">{selectedCase.solution}</pre>
               </div>
             )}
+
+            {/* Tools Reference */}
+            <div className="bg-gray-900 rounded-xl p-4 border border-gray-800">
+              <h3 className="text-sm font-semibold text-gray-300 mb-3">🛠️ 常用诊断工具速查</h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                {[
+                  { name: 'ping', desc: '测试连通性', layer: 'network', example: 'ping 8.8.8.8' },
+                  { name: 'tracert', desc: '追踪路由路径', layer: 'network', example: 'tracert 8.8.8.8' },
+                  { name: 'arp', desc: '查看ARP表', layer: 'datalink', example: 'arp -a' },
+                  { name: 'netstat', desc: '查看连接状态', layer: 'transport', example: 'netstat -an' },
+                  { name: 'nslookup', desc: 'DNS查询', layer: 'application', example: 'nslookup google.com' },
+                  { name: 'telnet', desc: '测试端口', layer: 'application', example: 'telnet host 80' },
+                  { name: 'show ip route', desc: '查看路由表', layer: 'network', example: 'show ip route' },
+                  { name: 'show interfaces', desc: '查看接口状态', layer: 'datalink', example: 'show ip int brief' },
+                ].map(t => (
+                  <div key={t.name} className="bg-gray-800/50 rounded p-2 text-xs group hover:bg-gray-800 transition-colors">
+                    <div className="text-cyan-400 font-mono">{t.name}</div>
+                    <div className="text-gray-500">{t.desc}</div>
+                    <div className="text-gray-600 font-mono mt-1 opacity-0 group-hover:opacity-100 transition-opacity">{t.example}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Exam Tips */}
+            <div className="bg-gray-900 rounded-xl p-4 border border-gray-800">
+              <button
+                onClick={() => setShowExamTips(!showExamTips)}
+                className="flex items-center gap-2 text-sm font-semibold text-yellow-400 mb-2"
+              >
+                <span>{showExamTips ? '▼' : '▶'}</span>
+                📚 考试要点总结（案例分析必考）
+              </button>
+              {showExamTips && (
+                <div className="space-y-3 text-sm text-gray-300">
+                  <div className="bg-gray-800/50 rounded-lg p-3">
+                    <div className="text-yellow-400 font-medium mb-2">一、故障排查方法论</div>
+                    <ul className="list-disc list-inside space-y-1 text-gray-400">
+                      <li><strong>OSI七层排查法：</strong>自下而上，从物理层开始逐层验证</li>
+                      <li><strong>分而治之法：</strong>将网络分段，缩小故障范围</li>
+                      <li><strong>替换法：</strong>用已知正常的设备/线缆替换怀疑对象</li>
+                      <li><strong>对比法：</strong>对比正常和异常设备的配置/状态</li>
+                    </ul>
+                  </div>
+                  <div className="bg-gray-800/50 rounded-lg p-3">
+                    <div className="text-yellow-400 font-medium mb-2">二、常见故障现象与原因对应</div>
+                    <ul className="list-disc list-inside space-y-1 text-gray-400">
+                      <li><strong>能ping通IP但打不开网页：</strong>DNS故障或HTTP被ACL阻断</li>
+                      <li><strong>能ping通网关但不通外网：</strong>路由问题或NAT配置错误</li>
+                      <li><strong>网络慢+CRC错误：</strong>双工不匹配或网线质量问题</li>
+                      <li><strong>小数据包正常大数据包丢：</strong>MTU不匹配</li>
+                      <li><strong>全网瘫痪+广播风暴：</strong>STP环路</li>
+                    </ul>
+                  </div>
+                  <div className="bg-gray-800/50 rounded-lg p-3">
+                    <div className="text-yellow-400 font-medium mb-2">三、常用诊断命令（考试重点）</div>
+                    <ul className="list-disc list-inside space-y-1 text-gray-400">
+                      <li><code className="text-cyan-400">ping -f -l 1472</code> - 测试MTU（-f禁止分片）</li>
+                      <li><code className="text-cyan-400">tracert</code> - 追踪路由，定位故障点</li>
+                      <li><code className="text-cyan-400">show spanning-tree</code> - 检查STP状态</li>
+                      <li><code className="text-cyan-400">show interfaces counters errors</code> - 查看CRC错误</li>
+                      <li><code className="text-cyan-400">show access-lists</code> - 检查ACL规则</li>
+                    </ul>
+                  </div>
+                  <div className="bg-gray-800/50 rounded-lg p-3">
+                    <div className="text-yellow-400 font-medium mb-2">四、案例分析答题技巧</div>
+                    <ul className="list-disc list-inside space-y-1 text-gray-400">
+                      <li>先根据症状判断故障层次（物理/数据链路/网络/应用）</li>
+                      <li>使用排除法，逐一验证可能原因</li>
+                      <li>给出具体的诊断命令和预期输出</li>
+                      <li>解决方案要具体，包括配置命令</li>
+                    </ul>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </SceneLayout>
   );
 }

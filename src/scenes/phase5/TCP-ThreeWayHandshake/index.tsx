@@ -227,7 +227,7 @@ export default function TCPThreeWayHandshakeScene() {
   };
 
   return (
-    <SceneLayout scene={scene}>
+    <SceneLayout scene={scene} showSidebar={false} noHeightLimit={true}>
       <div className="max-w-7xl mx-auto space-y-6">
         {/* 顶部步骤指示器 */}
         <div className="bg-white rounded-xl shadow-lg p-6">

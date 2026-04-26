@@ -235,7 +235,7 @@ export default function NATScene() {
   ];
 
   return (
-    <SceneLayout scene={sceneData} showSidebar={false}>
+    <SceneLayout scene={sceneData} showSidebar={false} noHeightLimit={true}>
       <div className="grid grid-cols-12 gap-4 h-full p-4 overflow-auto">
         
         {/* 左侧：NAT模式选择 */}

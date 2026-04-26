@@ -519,7 +519,7 @@ export function StorageArchitectureScene() {
   };
 
   return (
-    <SceneLayout scene={sceneData} showSidebar={false}>
+    <SceneLayout scene={sceneData} showSidebar={false} noHeightLimit={true}>
       <div className="grid grid-cols-12 gap-4 h-full">
         {/* 参数面板 - 缩小到2列 */}
         <div className="col-span-2 h-full overflow-y-auto">

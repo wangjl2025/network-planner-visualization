@@ -256,6 +256,54 @@ export default function IPv6AddressScene() {
                     </button>
                   ))}
                 </div>
+                
+                {/* 动画步骤卡片 */}
+                <div className="bg-gray-800/50 rounded-xl p-4 mt-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-sm text-white font-medium">动画步骤</span>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleReset}
+                        className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm text-gray-300 transition-colors"
+                      >
+                        重置
+                      </button>
+                      <button
+                        onClick={handlePlay}
+                        className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                          isPlaying 
+                            ? 'bg-yellow-600 hover:bg-yellow-700 text-white' 
+                            : 'bg-cyan-600 hover:bg-cyan-700 text-white'
+                        }`}
+                      >
+                        {isPlaying ? '暂停' : '播放'}
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <div className="flex gap-2 flex-wrap">
+                    {animationSteps.map((step, idx) => (
+                      <button
+                        key={step.id}
+                        onClick={() => handleStep(idx)}
+                        className={`px-3 py-2 rounded-lg text-sm transition-all ${
+                          currentStep === idx
+                            ? 'bg-cyan-600 text-white'
+                            : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                        }`}
+                      >
+                        {step.label}
+                      </button>
+                    ))}
+                  </div>
+                  
+                  {animationSteps[currentStep] && (
+                    <div className="mt-3 p-3 bg-gray-900/50 rounded-lg">
+                      <div className="text-xs text-cyan-400 mb-1">当前步骤说明</div>
+                      <div className="text-sm text-white">{animationSteps[currentStep].desc}</div>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
             
@@ -611,53 +659,6 @@ export default function IPv6AddressScene() {
           </div>
         </div>
         
-        {/* 底部动画控制 */}
-        <div className="bg-gray-800/50 rounded-xl p-4">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-sm text-white font-medium">动画步骤</span>
-            <div className="flex gap-2">
-              <button
-                onClick={handleReset}
-                className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm text-gray-300 transition-colors"
-              >
-                重置
-              </button>
-              <button
-                onClick={handlePlay}
-                className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                  isPlaying 
-                    ? 'bg-yellow-600 hover:bg-yellow-700 text-white' 
-                    : 'bg-cyan-600 hover:bg-cyan-700 text-white'
-                }`}
-              >
-                {isPlaying ? '暂停' : '播放'}
-              </button>
-            </div>
-          </div>
-          
-          <div className="flex gap-2 flex-wrap">
-            {animationSteps.map((step, idx) => (
-              <button
-                key={step.id}
-                onClick={() => handleStep(idx)}
-                className={`px-3 py-2 rounded-lg text-sm transition-all ${
-                  currentStep === idx
-                    ? 'bg-cyan-600 text-white'
-                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                }`}
-              >
-                {step.label}
-              </button>
-            ))}
-          </div>
-          
-          {animationSteps[currentStep] && (
-            <div className="mt-3 p-3 bg-gray-900/50 rounded-lg">
-              <div className="text-xs text-cyan-400 mb-1">当前步骤说明</div>
-              <div className="text-sm text-white">{animationSteps[currentStep].desc}</div>
-            </div>
-          )}
-        </div>
       </div>
     </SceneLayout>
   );

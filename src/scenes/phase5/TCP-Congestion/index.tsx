@@ -65,6 +65,17 @@ const tcpVersions = [
   { name: 'TCP CUBIC', features: ['基于三次函数的拥塞控制', '适合高带宽延迟积网络'], missing: '-', desc: 'Linux默认，高速网络优化' },
 ];
 
+// 场景数据
+const sceneData = {
+  id: 'tcp-congestion',
+  title: 'TCP拥塞控制',
+  description: 'TCP拥塞控制四大算法：慢启动、拥塞避免、快速重传、快速恢复',
+  phase: 5 as const,
+  category: '传输层协议',
+  difficulty: 'hard' as const,
+  duration: '8-10分钟',
+};
+
 export default function TCPCongestion() {
   const [cwnd, setCwnd] = useState(1);
   const [ssthresh, setSsthresh] = useState(16);
@@ -138,10 +149,7 @@ export default function TCPCongestion() {
   const maxCwnd = Math.max(32, ...history.map(h => h.cwnd));
 
   return (
-    <SceneLayout
-      title="TCP拥塞控制"
-      description="TCP拥塞控制四大算法：慢启动、拥塞避免、快速重传、快速恢复"
-    >
+    <SceneLayout scene={sceneData} showSidebar={false} noHeightLimit={true}>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* 左侧：可视化 */}
         <div className="lg:col-span-2 space-y-6">

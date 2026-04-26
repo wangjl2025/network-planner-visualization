@@ -179,7 +179,7 @@ export function SecurityComplianceScene() {
   };
 
   return (
-    <SceneLayout scene={sceneData} showSidebar={false}>
+    <SceneLayout scene={sceneData} showSidebar={false} noHeightLimit={true}>
       <div className="space-y-6 h-full overflow-y-auto">
         {/* 等级选择 */}
         <div className="bg-gray-800/50 rounded-xl p-6">

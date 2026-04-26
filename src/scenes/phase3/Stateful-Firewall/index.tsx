@@ -996,7 +996,7 @@ export function StatefulFirewallScene() {
   );
 
   return (
-    <SceneLayout scene={SCENE_DATA} showSidebar={false}>
+    <SceneLayout scene={SCENE_DATA} showSidebar={false} noHeightLimit={true}>
       {renderScene()}
     </SceneLayout>
   );

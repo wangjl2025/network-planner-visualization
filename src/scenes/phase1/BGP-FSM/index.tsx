@@ -198,7 +198,7 @@ export function BGPFSMScene() {
   };
 
   return (
-    <SceneLayout scene={scene} showSidebar={false}>
+    <SceneLayout scene={scene} showSidebar={false} noHeightLimit={true}>
       <div className="grid grid-cols-12 gap-6 h-full">
         {/* 左侧：状态机可视化 */}
         <div className="col-span-7 h-full overflow-y-auto">

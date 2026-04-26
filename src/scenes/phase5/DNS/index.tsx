@@ -43,7 +43,7 @@ const ITERATIVE_STEPS = [
   { id: 'i7', label: '查询完成', desc: '所有查询由发起者自己完成，每步都返回"下一个该问谁"', icon: Server, color: '#8b5cf6' },
 ];
 
-// 数据包动画
+// 数据包动画 - 增强版
 interface Packet {
   id: string;
   from: string;
@@ -51,35 +51,58 @@ interface Packet {
   label: string;
   color: string;
   delay: number;
+  type: 'query' | 'response' | 'cache-hit';
+  direction: 'forward' | 'backward';
 }
 
 const RECURSIVE_PACKETS: Packet[] = [
-  { id: 'p1', from: 'client', to: 'local', label: '查询 www.example.com', color: '#3b82f6', delay: 0 },
-  { id: 'p2', from: 'local', to: 'root', label: '查询 .', color: '#f59e0b', delay: 400 },
-  { id: 'p3', from: 'root', to: 'local', label: '返回 .com TLD地址', color: '#f59e0b', delay: 800 },
-  { id: 'p4', from: 'local', to: 'tld', label: '查询 .com', color: '#06b6d4', delay: 1200 },
-  { id: 'p5', from: 'tld', to: 'local', label: '返回 example.com权威', color: '#06b6d4', delay: 1600 },
-  { id: 'p6', from: 'local', to: 'auth', label: '查询 example.com', color: '#22c55e', delay: 2000 },
-  { id: 'p7', from: 'auth', to: 'local', label: '返回 93.184.216.34', color: '#22c55e', delay: 2400 },
-  { id: 'p8', from: 'local', to: 'client', label: '返回最终结果', color: '#8b5cf6', delay: 2800 },
+  // 客户端到本地DNS
+  { id: 'p1', from: 'client', to: 'local', label: '递归查询: www.example.com', color: '#3b82f6', delay: 0, type: 'query', direction: 'forward' },
+  
+  // 本地DNS到根DNS
+  { id: 'p2', from: 'local', to: 'root', label: '迭代查询: .', color: '#f59e0b', delay: 400, type: 'query', direction: 'forward' },
+  { id: 'p3', from: 'root', to: 'local', label: '返回: .com TLD地址', color: '#f59e0b', delay: 800, type: 'response', direction: 'backward' },
+  
+  // 本地DNS到TLD DNS
+  { id: 'p4', from: 'local', to: 'tld', label: '迭代查询: .com', color: '#06b6d4', delay: 1200, type: 'query', direction: 'forward' },
+  { id: 'p5', from: 'tld', to: 'local', label: '返回: example.com权威', color: '#06b6d4', delay: 1600, type: 'response', direction: 'backward' },
+  
+  // 本地DNS到权威DNS
+  { id: 'p6', from: 'local', to: 'auth', label: '迭代查询: example.com', color: '#22c55e', delay: 2000, type: 'query', direction: 'forward' },
+  { id: 'p7', from: 'auth', to: 'local', label: '返回: 93.184.216.34', color: '#22c55e', delay: 2400, type: 'response', direction: 'backward' },
+  
+  // 本地DNS返回给客户端
+  { id: 'p8', from: 'local', to: 'client', label: '递归响应: 93.184.216.34', color: '#8b5cf6', delay: 2800, type: 'response', direction: 'backward' },
+  
+  // 缓存命中（可选）
+  { id: 'p9', from: 'local', to: 'client', label: '缓存命中: 93.184.216.34', color: '#10b981', delay: 3200, type: 'cache-hit', direction: 'backward' },
 ];
 
 const ITERATIVE_PACKETS: Packet[] = [
-  { id: 'p1', from: 'client', to: 'root', label: '查询 www.example.com', color: '#3b82f6', delay: 0 },
-  { id: 'p2', from: 'root', to: 'client', label: '→ .com TLD地址', color: '#f59e0b', delay: 400 },
-  { id: 'p3', from: 'client', to: 'tld', label: '查询 www.example.com', color: '#06b6d4', delay: 800 },
-  { id: 'p4', from: 'tld', to: 'client', label: '→ example.com权威', color: '#06b6d4', delay: 1200 },
-  { id: 'p5', from: 'client', to: 'auth', label: '查询 www.example.com', color: '#22c55e', delay: 1600 },
-  { id: 'p6', from: 'auth', to: 'client', label: '→ 93.184.216.34', color: '#22c55e', delay: 2000 },
+  // 客户端到根DNS
+  { id: 'p1', from: 'client', to: 'root', label: '迭代查询: www.example.com', color: '#3b82f6', delay: 0, type: 'query', direction: 'forward' },
+  { id: 'p2', from: 'root', to: 'client', label: '返回: .com TLD地址', color: '#f59e0b', delay: 400, type: 'response', direction: 'backward' },
+  
+  // 客户端到TLD DNS
+  { id: 'p3', from: 'client', to: 'tld', label: '迭代查询: www.example.com', color: '#06b6d4', delay: 800, type: 'query', direction: 'forward' },
+  { id: 'p4', from: 'tld', to: 'client', label: '返回: example.com权威', color: '#06b6d4', delay: 1200, type: 'response', direction: 'backward' },
+  
+  // 客户端到权威DNS
+  { id: 'p5', from: 'client', to: 'auth', label: '迭代查询: www.example.com', color: '#22c55e', delay: 1600, type: 'query', direction: 'forward' },
+  { id: 'p6', from: 'auth', to: 'client', label: '返回: 93.184.216.34', color: '#22c55e', delay: 2000, type: 'response', direction: 'backward' },
+  
+  // 客户端缓存（可选）
+  { id: 'p7', from: 'client', to: 'auth', label: '缓存查询: www.example.com', color: '#10b981', delay: 2400, type: 'cache-hit', direction: 'forward' },
 ];
 
 export default function DNSScene() {
   const [queryMode, setQueryMode] = useState<'recursive' | 'iterative'>('recursive');
   const [currentStep, setCurrentStep] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [activePacket, setActivePacket] = useState<string | null>(null);
+  const [activePackets, setActivePackets] = useState<string[]>([]);
   const [result, setResult] = useState<string | null>(null);
   const [cacheHits, setCacheHits] = useState<string[]>([]);
+  const [showCompletePath, setShowCompletePath] = useState(false);
 
   const steps = queryMode === 'recursive' ? RECURSIVE_STEPS : ITERATIVE_STEPS;
   const packets = queryMode === 'recursive' ? RECURSIVE_PACKETS : ITERATIVE_PACKETS;
@@ -87,41 +110,96 @@ export default function DNSScene() {
   // 获取服务器位置
   const getServerPos = (id: string) => DNS_SERVERS.find(s => s.id === id)!;
 
-  // 动画控制
+  // 动画控制 - 增强版：支持多个数据包同时显示
   useEffect(() => {
     if (isPlaying && currentStep < steps.length) {
-      const currentPacket = packets.find(p => p.id === `p${currentStep + 1}`);
-      if (currentPacket) {
-        setActivePacket(currentPacket.id);
-        const timer = setTimeout(() => {
-          setActivePacket(null);
-          if (currentStep === steps.length - 1) {
-            setResult('93.184.216.34');
-            if (queryMode === 'recursive') setCacheHits(prev => [...prev, 'local']);
-          } else if (currentStep < steps.length - 1) {
-            setCurrentStep(prev => prev + 1);
+      // 当前步骤对应的所有数据包（可能是多个）
+      const currentStepPackets = packets.filter(p => {
+        // 根据步骤计算对应的数据包
+        if (queryMode === 'recursive') {
+          if (currentStep === 0) return p.id === 'p1'; // 客户端到本地DNS
+          if (currentStep === 1) return p.id === 'p2' || p.id === 'p3'; // 本地到根DNS+返回
+          if (currentStep === 2) return p.id === 'p4' || p.id === 'p5'; // 本地到TLD+返回
+          if (currentStep === 3) return p.id === 'p6' || p.id === 'p7'; // 本地到权威+返回
+          if (currentStep === 4) return p.id === 'p8'; // 本地返回给客户端
+          if (currentStep === 5) return p.id === 'p9'; // 缓存命中
+        } else {
+          if (currentStep === 0) return p.id === 'p1' || p.id === 'p2'; // 客户端到根DNS+返回
+          if (currentStep === 1) return p.id === 'p3' || p.id === 'p4'; // 客户端到TLD+返回
+          if (currentStep === 2) return p.id === 'p5' || p.id === 'p6'; // 客户端到权威+返回
+          if (currentStep === 3) return p.id === 'p7'; // 缓存查询
+        }
+        return false;
+      });
+      
+      // 设置活跃数据包
+      setActivePackets(currentStepPackets.map(p => p.id));
+      
+      // 延迟后清除活跃数据包并进入下一步
+      const timer = setTimeout(() => {
+        setActivePackets([]);
+        if (currentStep === steps.length - 1) {
+          setResult('93.184.216.34');
+          if (queryMode === 'recursive') {
+            setCacheHits(prev => [...prev, 'local']);
+          } else {
+            setCacheHits(prev => [...prev, 'client']);
           }
-        }, 600);
-        return () => clearTimeout(timer);
-      }
+          // 显示完整路径
+          setShowCompletePath(true);
+        } else if (currentStep < steps.length - 1) {
+          setCurrentStep(prev => prev + 1);
+        }
+      }, 800);
+      
+      return () => clearTimeout(timer);
     }
   }, [isPlaying, currentStep, steps.length, packets, queryMode]);
+
+  // 获取完整查询路径（显示所有数据包轨迹）
+  const getCompletePath = () => {
+    if (queryMode === 'recursive') {
+      return [
+        { from: 'client', to: 'local', color: '#3b82f6' },
+        { from: 'local', to: 'root', color: '#f59e0b' },
+        { from: 'root', to: 'local', color: '#f59e0b' },
+        { from: 'local', to: 'tld', color: '#06b6d4' },
+        { from: 'tld', to: 'local', color: '#06b6d4' },
+        { from: 'local', to: 'auth', color: '#22c55e' },
+        { from: 'auth', to: 'local', color: '#22c55e' },
+        { from: 'local', to: 'client', color: '#8b5cf6' },
+      ];
+    } else {
+      return [
+        { from: 'client', to: 'root', color: '#3b82f6' },
+        { from: 'root', to: 'client', color: '#f59e0b' },
+        { from: 'client', to: 'tld', color: '#06b6d4' },
+        { from: 'tld', to: 'client', color: '#06b6d4' },
+        { from: 'client', to: 'auth', color: '#22c55e' },
+        { from: 'auth', to: 'client', color: '#22c55e' },
+      ];
+    }
+  };
 
   const handleReset = useCallback(() => {
     setCurrentStep(0);
     setIsPlaying(false);
-    setActivePacket(null);
+    setActivePackets([]);
     setResult(null);
     setCacheHits([]);
+    setShowCompletePath(false);
   }, []);
 
   const handleStepChange = useCallback((step: number) => {
     setCurrentStep(step);
     setIsPlaying(false);
-    if (step === steps.length) {
+    setActivePackets([]);
+    if (step === steps.length - 1) {
       setResult('93.184.216.34');
+      setShowCompletePath(true);
     } else {
       setResult(null);
+      setShowCompletePath(false);
     }
   }, [steps.length]);
 
@@ -138,7 +216,7 @@ export default function DNSScene() {
   };
 
   return (
-    <SceneLayout scene={sceneData} showSidebar={false}>
+    <SceneLayout scene={sceneData} showSidebar={false} noHeightLimit={true}>
       <div className="grid grid-cols-12 gap-4 h-full overflow-hidden p-4">
         {/* 左侧：模式切换和知识点 */}
         <div className="col-span-3 space-y-3">
@@ -244,11 +322,44 @@ export default function DNSScene() {
               </AnimatePresence>
             </div>
 
-            {/* TTL */}
-            <div className="absolute top-3 right-4 flex items-center gap-2 bg-slate-800/80 px-3 py-1.5 rounded border border-slate-700">
-              <Clock className="w-3 h-3 text-slate-400" />
-              <span className="text-xs text-slate-400">TTL: </span>
-              <span className="text-xs text-emerald-400">3600s</span>
+            {/* 额外的动画控制 */}
+            <div className="absolute top-3 right-4 flex items-center gap-4">
+              {/* TTL */}
+              <div className="bg-slate-800/80 px-3 py-1.5 rounded border border-slate-700 flex items-center gap-2">
+                <Clock className="w-3 h-3 text-slate-400" />
+                <span className="text-xs text-slate-400">TTL: </span>
+                <span className="text-xs text-emerald-400">3600s</span>
+              </div>
+              
+              {/* 缓存命中按钮 */}
+              <button
+                onClick={() => {
+                  if (queryMode === 'recursive') {
+                    setCacheHits(['local']);
+                  } else {
+                    setCacheHits(['client']);
+                  }
+                  // 触发缓存命中动画
+                  const cachePacket = packets.find(p => p.type === 'cache-hit');
+                  if (cachePacket) {
+                    setActivePackets([cachePacket.id]);
+                    setTimeout(() => setActivePackets([]), 600);
+                  }
+                }}
+                className="bg-purple-500/20 px-3 py-1.5 rounded border border-purple-500/50 hover:bg-purple-500/30 transition-colors"
+              >
+                <span className="text-xs text-purple-400">模拟缓存命中</span>
+              </button>
+              
+              {/* 显示完整路径 */}
+              <button
+                onClick={() => setShowCompletePath(!showCompletePath)}
+                className="bg-indigo-500/20 px-3 py-1.5 rounded border border-indigo-500/50 hover:bg-indigo-500/30 transition-colors"
+              >
+                <span className="text-xs text-indigo-400">
+                  {showCompletePath ? '隐藏路径' : '显示完整路径'}
+                </span>
+              </button>
             </div>
 
             <svg className="w-full h-full" viewBox="0 0 500 380">
@@ -256,9 +367,9 @@ export default function DNSScene() {
               {/* 客户端到本地DNS */}
               <motion.line
                 x1="120" y1="300" x2="180" y2="300"
-                stroke={activePacket ? '#3b82f6' : '#334155'}
-                strokeWidth={activePacket ? 3 : 1.5}
-                strokeDasharray="5,5"
+                stroke={queryMode === 'recursive' ? '#3b82f6' : '#334155'}
+                strokeWidth={queryMode === 'recursive' ? 2 : 0.5}
+                strokeDasharray={queryMode === 'recursive' ? "none" : "5,5"}
               />
               
               {/* 本地DNS到各服务器 - 递归模式 */}
@@ -266,20 +377,20 @@ export default function DNSScene() {
                 <>
                   <motion.line
                     x1="260" y1="290" x2="360" y2="120"
-                    stroke={activePacket ? '#f59e0b' : '#334155'}
-                    strokeWidth={activePacket ? 3 : 1.5}
+                    stroke={activePackets.length > 0 ? '#f59e0b' : '#334155'}
+                    strokeWidth={activePackets.length > 0 ? 3 : 1.5}
                     strokeDasharray="5,5"
                   />
                   <motion.line
                     x1="260" y1="295" x2="360" y2="200"
-                    stroke={activePacket ? '#06b6d4' : '#334155'}
-                    strokeWidth={activePacket ? 3 : 1.5}
+                    stroke={activePackets.length > 0 ? '#06b6d4' : '#334155'}
+                    strokeWidth={activePackets.length > 0 ? 3 : 1.5}
                     strokeDasharray="5,5"
                   />
                   <motion.line
                     x1="260" y1="300" x2="360" y2="300"
-                    stroke={activePacket ? '#22c55e' : '#334155'}
-                    strokeWidth={activePacket ? 3 : 1.5}
+                    stroke={activePackets.length > 0 ? '#22c55e' : '#334155'}
+                    strokeWidth={activePackets.length > 0 ? 3 : 1.5}
                     strokeDasharray="5,5"
                   />
                 </>
@@ -290,20 +401,20 @@ export default function DNSScene() {
                 <>
                   <motion.line
                     x1="120" y1="290" x2="360" y2="120"
-                    stroke={activePacket ? '#f59e0b' : '#334155'}
-                    strokeWidth={activePacket ? 3 : 1.5}
+                    stroke={activePackets.length > 0 ? '#f59e0b' : '#334155'}
+                    strokeWidth={activePackets.length > 0 ? 3 : 1.5}
                     strokeDasharray="5,5"
                   />
                   <motion.line
                     x1="120" y1="295" x2="360" y2="200"
-                    stroke={activePacket ? '#06b6d4' : '#334155'}
-                    strokeWidth={activePacket ? 3 : 1.5}
+                    stroke={activePackets.length > 0 ? '#06b6d4' : '#334155'}
+                    strokeWidth={activePackets.length > 0 ? 3 : 1.5}
                     strokeDasharray="5,5"
                   />
                   <motion.line
                     x1="120" y1="300" x2="360" y2="300"
-                    stroke={activePacket ? '#22c55e' : '#334155'}
-                    strokeWidth={activePacket ? 3 : 1.5}
+                    stroke={activePackets.length > 0 ? '#22c55e' : '#334155'}
+                    strokeWidth={activePackets.length > 0 ? 3 : 1.5}
                     strokeDasharray="5,5"
                   />
                 </>
@@ -311,7 +422,11 @@ export default function DNSScene() {
 
               {/* DNS服务器节点 */}
               {DNS_SERVERS.map((server, i) => {
-                const isActive = activePacket?.includes(server.id[0]) || currentStep >= i;
+                // 判断服务器是否活跃
+                const isActive = activePackets.some(packetId => {
+                  const packet = packets.find(p => p.id === packetId);
+                  return packet && (packet.from === server.id || packet.to === server.id);
+                }) || cacheHits.includes(server.id);
                 const Icon = server.icon;
                 return (
                   <g key={server.id} transform={`translate(${server.x}, ${server.y})`}>
@@ -353,44 +468,91 @@ export default function DNSScene() {
                 );
               })}
 
-              {/* 活跃数据包动画 */}
+              {/* 活跃数据包动画 - 增强版 */}
               <AnimatePresence>
-                {activePacket && (() => {
-                  const packet = packets.find(p => p.id === activePacket);
+                {activePackets.map(packetId => {
+                  const packet = packets.find(p => p.id === packetId);
                   if (!packet) return null;
                   const from = getServerPos(packet.from);
                   const to = getServerPos(packet.to);
+                  
+                  // 不同包类型的形状和样式
+                  const packetShape = packet.type === 'query' ? 'arrow' : 'circle';
+                  const packetSize = packet.type === 'cache-hit' ? 8 : 12;
+                  const packetOpacity = packet.type === 'cache-hit' ? 0.8 : 0.9;
+                  const textOffset = packet.direction === 'forward' ? -15 : 15;
+                  
                   return (
                     <motion.g
+                      key={packet.id}
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
                     >
-                      <motion.circle
-                        r="10"
-                        fill={packet.color}
-                        initial={{ cx: from.x, cy: from.y }}
-                        animate={{ 
-                          cx: [from.x, to.x],
-                          cy: [from.y, to.y]
-                        }}
-                        transition={{ duration: 0.5, ease: 'easeInOut' }}
-                      />
+                      {packetShape === 'arrow' ? (
+                        <motion.path
+                          d={`M ${from.x} ${from.y} L ${to.x} ${to.y}`}
+                          fill={packet.color}
+                          stroke={packet.color}
+                          strokeWidth={3}
+                          initial={{ strokeDashoffset: 100 }}
+                          animate={{ strokeDashoffset: 0 }}
+                          transition={{ duration: 0.6, ease: 'easeInOut' }}
+                          strokeDasharray="10,5"
+                        />
+                      ) : (
+                        <motion.circle
+                          r={packetSize}
+                          fill={packet.color}
+                          initial={{ cx: from.x, cy: from.y }}
+                          animate={{ 
+                            cx: [from.x, to.x],
+                            cy: [from.y, to.y]
+                          }}
+                          transition={{ duration: 0.6, ease: 'easeInOut' }}
+                          style={{ opacity: packetOpacity }}
+                        />
+                      )}
+                      
+                      {/* 数据包标签 */}
                       <motion.text
                         x={(from.x + to.x) / 2}
-                        y={(from.y + to.y) / 2 - 15}
+                        y={(from.y + to.y) / 2 + textOffset}
                         textAnchor="middle"
-                        className="text-xs fill-white"
+                        className="text-xs fill-white font-bold"
                         fill={packet.color}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: 0.1 }}
                       >
                         {packet.label}
                       </motion.text>
                     </motion.g>
                   );
-                })()}
+                })}
               </AnimatePresence>
+              
+              {/* 完整查询路径（静态显示） */}
+              {showCompletePath && (
+                <g>
+                  {getCompletePath().map((path, i) => {
+                    const from = getServerPos(path.from);
+                    const to = getServerPos(path.to);
+                    return (
+                      <motion.path
+                        key={`path-${i}`}
+                        d={`M ${from.x} ${from.y} L ${to.x} ${to.y}`}
+                        stroke={path.color}
+                        strokeWidth={1.5}
+                        strokeDasharray="4,4"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 0.5 }}
+                        transition={{ delay: i * 0.1 }}
+                      />
+                    );
+                  })}
+                </g>
+              )}
 
               {/* 图例 */}
               <g transform="translate(30, 340)">

@@ -108,7 +108,7 @@ export function SceneLayout({
             {/* 可视化画布 - 根据内容自适应高度 */}
             {/* showSidebar=false 时 children 是完整页面内容，不限制高度；有侧边栏时用 clamp 固定画布高度 */}
             <div className={`bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden ${fullHeight ? 'flex-1 min-h-0 relative' : ''}`}>
-              <div className={`${fullHeight ? 'absolute inset-0' : showSidebar && !noHeightLimit ? 'h-[clamp(500px,75vh,1000px)]' : ''} bg-gray-900 relative`}>
+              <div className={`${fullHeight ? 'absolute inset-0' : (showSidebar && !noHeightLimit) ? 'h-[clamp(500px,75vh,1000px)]' : 'min-h-[clamp(500px,75vh,1200px)]'} bg-gray-900 relative`}>
                 {children}
               </div>
             </div>
