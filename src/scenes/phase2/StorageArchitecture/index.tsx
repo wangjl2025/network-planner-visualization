@@ -296,11 +296,11 @@ const CEPH_ARCHITECTURE: StorageArchitecture = {
     { id: 'rgw-2', type: 'server', name: 'RGW-2', x: 350, y: 510, icon: Globe, details: { role: 'Object GW', daemon: 'radosgw' } },
     
     // OSD节点 - 第6行 (双网卡：同时连Public和Cluster)
-    { id: 'osd-1', type: 'server', name: 'OSD-1', x: 50, y: 630, icon: Database, details: { role: 'Storage', disks: '12x SSD' } },
-    { id: 'osd-2', type: 'server', name: 'OSD-2', x: 170, y: 630, icon: Database, details: { role: 'Storage', disks: '12x SSD' } },
-    { id: 'osd-3', type: 'server', name: 'OSD-3', x: 290, y: 630, icon: Database, details: { role: 'Storage', disks: '12x SSD' } },
-    { id: 'osd-4', type: 'server', name: 'OSD-4', x: 410, y: 630, icon: Database, details: { role: 'Storage', disks: '12x SSD' } },
-    { id: 'osd-5', type: 'server', name: 'OSD-5', x: 530, y: 630, icon: Database, details: { role: 'Storage', disks: '12x SSD' } },
+    { id: 'osd-1', type: 'server', name: 'OSD-1', x: 50, y: 630, icon: Database, details: { role: 'Storage', capacity: '12x SSD' } },
+    { id: 'osd-2', type: 'server', name: 'OSD-2', x: 170, y: 630, icon: Database, details: { role: 'Storage', capacity: '12x SSD' } },
+    { id: 'osd-3', type: 'server', name: 'OSD-3', x: 290, y: 630, icon: Database, details: { role: 'Storage', capacity: '12x SSD' } },
+    { id: 'osd-4', type: 'server', name: 'OSD-4', x: 410, y: 630, icon: Database, details: { role: 'Storage', capacity: '12x SSD' } },
+    { id: 'osd-5', type: 'server', name: 'OSD-5', x: 530, y: 630, icon: Database, details: { role: 'Storage', capacity: '12x SSD' } },
   ],
   connections: [
     // 客户端到Public网络
@@ -361,13 +361,13 @@ const HCI_ARCHITECTURE: StorageArchitecture = {
   cons: ['计算存储绑定', '扩容粒度大', '网络要求严格', '厂商锁定'],
   nodes: [
     // 管理平面 - 第1行
-    { id: 'vcenter', type: 'server', name: 'vCenter', x: 290, y: 30, icon: Cloud, details: { role: 'Management', platform: 'VMware' } },
+    { id: 'vcenter', type: 'server', name: 'vCenter', x: 290, y: 30, icon: Cloud, details: { role: 'Management', model: 'VMware' } },
     
     // HCI节点 - 第2行
-    { id: 'hci-node-1', type: 'server', name: 'HCI-1', x: 50, y: 150, icon: Layers, details: { cpu: '2x 32C', ram: '512GB', storage: '8x SSD' } },
-    { id: 'hci-node-2', type: 'server', name: 'HCI-2', x: 170, y: 150, icon: Layers, details: { cpu: '2x 32C', ram: '512GB', storage: '8x SSD' } },
-    { id: 'hci-node-3', type: 'server', name: 'HCI-3', x: 290, y: 150, icon: Layers, details: { cpu: '2x 32C', ram: '512GB', storage: '8x SSD' } },
-    { id: 'hci-node-4', type: 'server', name: 'HCI-4', x: 410, y: 150, icon: Layers, details: { cpu: '2x 32C', ram: '512GB', storage: '8x SSD' } },
+    { id: 'hci-node-1', type: 'server', name: 'HCI-1', x: 50, y: 150, icon: Layers, details: { cpu: '2x 32C', memory: '512GB', capacity: '8x SSD' } },
+    { id: 'hci-node-2', type: 'server', name: 'HCI-2', x: 170, y: 150, icon: Layers, details: { cpu: '2x 32C', memory: '512GB', capacity: '8x SSD' } },
+    { id: 'hci-node-3', type: 'server', name: 'HCI-3', x: 290, y: 150, icon: Layers, details: { cpu: '2x 32C', memory: '512GB', capacity: '8x SSD' } },
+    { id: 'hci-node-4', type: 'server', name: 'HCI-4', x: 410, y: 150, icon: Layers, details: { cpu: '2x 32C', memory: '512GB', capacity: '8x SSD' } },
     
     // 网络层 - 第3行
     { id: 'hci-sw-1', type: 'switch', name: '管理网络', x: 110, y: 270, icon: Network, details: { speed: '1GbE' } },
