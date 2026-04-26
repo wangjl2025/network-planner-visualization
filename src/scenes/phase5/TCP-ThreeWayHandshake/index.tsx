@@ -21,6 +21,40 @@ interface ConnectionState {
   server: 'CLOSED' | 'LISTEN' | 'SYN_RCVD' | 'ESTABLISHED';
 }
 
+interface Step {
+  title: string;
+  description: string;
+  clientState: 'CLOSED' | 'SYN_SENT' | 'ESTABLISHED';
+  serverState: 'CLOSED' | 'LISTEN' | 'SYN_RCVD' | 'ESTABLISHED';
+  action: string;
+  packet?: {
+    type: 'SYN' | 'SYN-ACK' | 'ACK' | 'DATA';
+    seq: number;
+    ack?: number;
+    from: 'client' | 'server';
+    to: 'client' | 'server';
+  };
+}
+
+const getClientColor = (state: ConnectionState['client'], isFill: boolean) => {
+  const map = {
+    CLOSED: isFill ? '#9ca3af' : '#4b5563',
+    SYN_SENT: isFill ? '#fbbf24' : '#92400e',
+    ESTABLISHED: isFill ? '#22c55e' : '#166534',
+  };
+  return map[state] || map.CLOSED;
+};
+
+const getServerColor = (state: ConnectionState['server'], isFill: boolean) => {
+  const map = {
+    CLOSED: isFill ? '#9ca3af' : '#4b5563',
+    LISTEN: isFill ? '#60a5fa' : '#1e40af',
+    SYN_RCVD: isFill ? '#fb923c' : '#9a3412',
+    ESTABLISHED: isFill ? '#22c55e' : '#166534',
+  };
+  return map[state] || map.CLOSED;
+};
+
 export default function TCPThreeWayHandshakeScene() {
   const [currentStep, setCurrentStep] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
@@ -34,7 +68,7 @@ export default function TCPThreeWayHandshakeScene() {
   });
   const [packets, setPackets] = useState<Packet[]>([]);
   const [activePacket, setActivePacket] = useState<Packet | null>(null);
-  const autoPlayRef = useRef<NodeJS.Timeout | null>(null);
+  const autoPlayRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const steps = [
     {
@@ -150,8 +184,8 @@ export default function TCPThreeWayHandshakeScene() {
           type: step.packet.type,
           seq: step.packet.seq,
           ack: step.packet.ack,
-          from: step.packet.from,
-          to: step.packet.to
+          from: step.packet.from as 'client' | 'server',
+          to: step.packet.to as 'client' | 'server'
         };
         setActivePacket(newPacket);
         
@@ -342,9 +376,9 @@ export default function TCPThreeWayHandshakeScene() {
                 <g transform="translate(130, 90)">
                   <motion.rect 
                     x="0" y="0" width="100" height="35" rx="6" 
-                    fill={connectionState.client === 'CLOSED' ? '#9ca3af' : connectionState.client === 'LISTEN' ? '#60a5fa' : connectionState.client === 'SYN_SENT' ? '#fbbf24' : connectionState.client === 'SYN_RCVD' ? '#fb923c' : '#22c55e'} 
+                    fill={getClientColor(connectionState.client, true)} 
                     fillOpacity="0.2" 
-                    stroke={connectionState.client === 'CLOSED' ? '#9ca3af' : connectionState.client === 'LISTEN' ? '#60a5fa' : connectionState.client === 'SYN_SENT' ? '#fbbf24' : connectionState.client === 'SYN_RCVD' ? '#fb923c' : '#22c55e'} 
+                    stroke={getClientColor(connectionState.client, true)} 
                     strokeWidth="2"
                     animate={{ 
                       fillOpacity: [0.2, 0.4, 0.2],
@@ -352,7 +386,7 @@ export default function TCPThreeWayHandshakeScene() {
                     transition={{ duration: 2, repeat: Infinity }}
                   />
                   <text x="50" y="23" textAnchor="middle" fontSize="12" fontWeight="bold" 
-                    fill={connectionState.client === 'CLOSED' ? '#4b5563' : connectionState.client === 'LISTEN' ? '#1e40af' : connectionState.client === 'SYN_SENT' ? '#92400e' : connectionState.client === 'SYN_RCVD' ? '#9a3412' : '#166534'}>
+                    fill={getClientColor(connectionState.client, false)}>
                     {connectionState.client}
                   </text>
                 </g>
@@ -360,9 +394,9 @@ export default function TCPThreeWayHandshakeScene() {
                 <g transform="translate(470, 90)">
                   <motion.rect 
                     x="0" y="0" width="100" height="35" rx="6" 
-                    fill={connectionState.server === 'CLOSED' ? '#9ca3af' : connectionState.server === 'LISTEN' ? '#60a5fa' : connectionState.server === 'SYN_RCVD' ? '#fb923c' : '#22c55e'} 
-                    fillOpacity="0.2" 
-                    stroke={connectionState.server === 'CLOSED' ? '#9ca3af' : connectionState.server === 'LISTEN' ? '#60a5fa' : connectionState.server === 'SYN_RCVD' ? '#fb923c' : '#22c5fe'} 
+                    fill={getServerColor(connectionState.server, true)} 
+                    fillOpacity="0.2"  
+                    stroke={getServerColor(connectionState.server, true)}
                     strokeWidth="2"
                     animate={{ 
                       fillOpacity: [0.2, 0.4, 0.2],
@@ -370,7 +404,7 @@ export default function TCPThreeWayHandshakeScene() {
                     transition={{ duration: 2, repeat: Infinity }}
                   />
                   <text x="50" y="23" textAnchor="middle" fontSize="12" fontWeight="bold"
-                    fill={connectionState.server === 'CLOSED' ? '#4b5563' : connectionState.server === 'LISTEN' ? '#1e40af' : connectionState.server === 'SYN_RCVD' ? '#9a3412' : '#166534'}>
+                    fill={getServerColor(connectionState.server, false)}>
                     {connectionState.server}
                   </text>
                 </g>

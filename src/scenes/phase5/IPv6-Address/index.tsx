@@ -93,7 +93,7 @@ export default function IPv6AddressScene() {
     if (!showAnimation) return;
     
     setNdpStep(0);
-    const timers: NodeJS.Timeout[] = [];
+    const timers: ReturnType<typeof setTimeout>[] = [];
     
     ndpMessages.forEach((msg, index) => {
       const timer = setTimeout(() => {

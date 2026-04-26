@@ -216,6 +216,12 @@ export default function NATScene() {
     return hosts[host] || hosts[0];
   };
 
+  // 获取内部主机原始IP
+  const getSrcIP = (mode: string, host: number) => {
+    const hosts = ['192.168.1.100', '192.168.1.101', '192.168.1.102'];
+    return hosts[host] || hosts[0];
+  };
+
   // 根据模式获取映射后的IP
   const getMappedIP = (mode: string, host: number) => {
     if (mode === 'static') {

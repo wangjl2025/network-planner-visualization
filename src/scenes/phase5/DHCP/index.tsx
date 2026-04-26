@@ -259,7 +259,7 @@ export default function DHCPScene() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [selectedFlow, setSelectedFlow] = useState<FlowType>('DORA');
   const [packetAnimation, setPacketAnimation] = useState<'idle' | 'sending' | 'received'>('idle');
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const animationRef = useRef<number | null>(null);
 
   // 根据选择的流程获取步骤

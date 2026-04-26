@@ -38,7 +38,7 @@ export default function ARPProtocolScene() {
     { ip: '192.168.1.1', mac: 'AA:BB:CC:DD:EE:FF', type: '静态', status: '网关', timestamp: Date.now() },
   ]);
 
-  const autoPlayRef = useRef<NodeJS.Timeout | null>(null);
+  const autoPlayRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const hosts = [
     { id: 'hostA', name: '主机A', ip: '192.168.1.10', mac: 'AA:BB:CC:DD:EE:01', x: 100, y: 120, color: '#3b82f6' },
